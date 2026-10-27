@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+backend/venv/
+backend/env/
+venv/
+env/
+ENV/
+*.manifest
+*.spec.bak
+
+# Node & Frontend
+node_modules/
+frontend/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Builds & Executables (Binaries > 100MB excluded from Git)
+dist/
+backend/dist/
+frontend/dist/
+build/
+backend/build/
+*.exe
+*.dll
+*.dylib
+*.pyd
+
+# User configs & local machine profiles
+backend/learning_profile.json
+.env
+.env.local
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo

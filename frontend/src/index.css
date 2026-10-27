@@ -1,0 +1,77 @@
+:root {
+  /* Light Mode (Chalk Default) */
+  --bg-primary: #f4f2ec;
+  --bg-elevated: #eae7df;
+  --bg-card: #f4f2ec;
+  --text-primary: #11120f;
+  --text-muted: #6b6b54;
+  --rule-hard: #11120f;
+  --rule-soft: #c8c8bf;
+  --mineral-blue: #275d63;
+  --vermilion: #e54c35;
+  --olive-accent: #85856b;
+  --surface-tint: rgba(200, 200, 191, 0.22);
+
+  --font-display: "Arial Black", "Helvetica Neue", "Impact", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+[data-theme="dark"] {
+  /* Dark Mode (Obsidian Studio) */
+  --bg-primary: #11120f;
+  --bg-elevated: #181a16;
+  --bg-card: #151713;
+  --text-primary: #f4f2ec;
+  --text-muted: #9b9b84;
+  --rule-hard: #3a3c34;
+  --rule-soft: #262822;
+  --mineral-blue: #367e86;
+  --vermilion: #e54c35;
+  --olive-accent: #a0a084;
+  --surface-tint: rgba(255, 255, 255, 0.04);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  font-family: var(--font-sans);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 13px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+:focus-visible {
+  outline: 2px solid var(--vermilion);
+  outline-offset: -2px;
+}
+
+/* Custom Editorial Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+  border-left: 1px solid var(--rule-soft);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vermilion);
+}
