@@ -1680,8 +1680,8 @@ function App() {
                       className={`theme-option-card ${theme === 'light' ? 'active-card' : ''}`}
                       onClick={() => setTheme('light')}
                     >
-                      <span className="theme-option-name">☀ CHALK EDITORIAL</span>
-                      <span className="theme-option-desc">High-contrast daylight theme for location laptop inspections.</span>
+                      <span className="theme-option-name">☀ CHALK EDITORIAL (#F4F3EE)</span>
+                      <span className="theme-option-desc">Warm chalk paper background calibrated for location laptop inspections.</span>
                     </button>
                   </div>
                 </div>

@@ -1201,14 +1201,19 @@
 }
 
 .brand-logo-img {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   object-fit: contain;
-  border-radius: 4px;
   flex-shrink: 0;
-  border: 1px solid var(--rule-soft);
-  background: #141612;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  transition: transform 0.16s ease;
+}
+
+.brand-block:hover .brand-logo-img {
+  transform: scale(1.06) rotate(5deg);
 }
 
 .brand-text-block {
@@ -1480,12 +1485,11 @@
   width: 80px;
   height: 80px;
   object-fit: contain;
-  border-radius: 8px;
-  border: 2px solid var(--signal-mineral);
-  background: #1a1c18;
-  padding: 6px;
+  background: transparent;
+  border: none;
+  padding: 0;
   flex-shrink: 0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.6);
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.45));
 }
 
 .about-title {
