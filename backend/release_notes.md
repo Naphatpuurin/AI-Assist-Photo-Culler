@@ -4,9 +4,10 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ### 📦 Available Release Packages
 
-- **`MicMose Photo Culler Pro.exe`** — Portable standalone application. Run directly anywhere without installation.
+- **`MicMose Photo Culler Pro.exe`** — Portable standalone Windows application. Run directly anywhere without installation.
 - **`MicMose-Photo-Culler-Pro-Setup.exe`** — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
 - **`MicMose-Photo-Culler-Pro.msi`** — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
+- **`MicMose-Photo-Culler-Pro-macOS.dmg`** — Native Apple Silicon & Intel macOS disk image installer.
 - **`MicMoseStudio.cer`** — Official Studio Authenticode public certificate for publisher verification.
 - **`SHA256SUMS.txt`** — SHA-256 cryptographic checksums for release verification.
 

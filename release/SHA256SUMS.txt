@@ -2,3 +2,4 @@
 6368e8d1e750a7293ef687c39eed3d518d15775017f59f832e132f023ea92e09  MicMose-Photo-Culler-Pro-Setup.exe
 1e39f46e2d293e2b070837f0fb8aa097b7530540a96cddf9126b298c5c977d29  MicMose-Photo-Culler-Pro.msi
 567b7967b05cac37cb6eb7acdae9affced81fffe0e71199231231fc04a89f921  MicMoseStudio.cer
+6011add3c7e4ccc95d329da479b06fcaa7306fa507b16cded6a9c3c0e9cb9005  MicMose-Photo-Culler-Pro-macOS.dmg
