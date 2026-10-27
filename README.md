@@ -9,11 +9,9 @@
 [![Adobe Camera Raw](https://img.shields.io/badge/ACR-16.0%20Sidecar%20Sync-ff0000.svg)](https://helpx.adobe.com/camera-raw/using/supported-cameras.html)
 
 <div align="center">
-  <img src="docs/screenshots/logo_regular.png" width="100" alt="MicMose Regular Logo" />
-  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="docs/screenshots/logo_troll.png" width="100" alt="MicMose Troll Logo" />
+  <img src="docs/screenshots/logo_regular.png" width="110" alt="MicMose Photo Culler Pro Logo" />
   <br>
-  <sub><b>Regular Studio Logo &amp; Troll Edition</b> — Switchable live from the top-left About &amp; Settings menu</sub>
+  <sub><b>MicMose Photo Culler Pro</b> — Official Editorial Studio Emblem</sub>
 </div>
 
 <br>
@@ -42,8 +40,8 @@ It combines **pure-threshold neural sharpness analysis**, **native camera RAW de
 
 ## ⚡ Highlights & Key Capabilities
 
-- **🎛️ Top-Left Studio Hub & Logo Switcher (Regular vs Troll)**
-  Click the studio logo button in the top-left identity bar to open the **About & Settings** dialog. Switch live between the **Official Editorial Studio Logo** and the **Troll Logo (Meme Edition)**. Your preference is persisted automatically.
+- **🎛️ Dedicated Top-Left Studio Settings & About Hub**
+  Access the **Settings & About** modal directly from the dedicated button on the far left of the header bar to inspect system hardware status, neural culling specs, and configure studio preferences.
 - **🎯 Calibrated Pure-Threshold Culling (Level 1–10 Scale)**
   Evaluates every frame on its individual technical merits. No artificial percentile caps or arbitrary cluster demotions. The balanced **Level 5 baseline** reliably selects ~38–40% keepers on typical event rolls (e.g. ~236 keeps out of 640 shots).
 - **👁️ Neural Subject & Eye Focus Isolation**

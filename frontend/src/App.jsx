@@ -1,28 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
-import logoTroll from './assets/logo_troll.png'
 
 function App() {
   const [theme, setTheme] = useState('dark');
-  const [logoMode, setLogoMode] = useState(() => {
-    try {
-      return localStorage.getItem('micmose_logo_mode') || 'regular';
-    } catch {
-      return 'regular';
-    }
-  });
   const [showAboutModal, setShowAboutModal] = useState(false);
-  const [aboutTab, setAboutTab] = useState('about'); // 'about' | 'settings'
-
-  const handleSelectLogo = (mode) => {
-    setLogoMode(mode);
-    try {
-      localStorage.setItem('micmose_logo_mode', mode);
-    } catch {
-      // ignore
-    }
-  };
+  const [aboutTab, setAboutTab] = useState('settings'); // 'settings' | 'about'
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -640,23 +623,33 @@ function App() {
         <div className="brand-group">
           <button
             type="button"
-            className="brand-logo-btn"
-            onClick={() => setShowAboutModal(true)}
-            title="About MicMose Photo Culler Pro & Settings"
+            className="settings-corner-btn"
+            onClick={() => { setAboutTab('settings'); setShowAboutModal(true); }}
+            title="Studio Settings & Telemetry [S]"
+          >
+            <span className="settings-icon">⚙</span>
+            <span className="settings-label">SETTINGS</span>
+          </button>
+          <div
+            className="brand-block"
+            onClick={() => { setAboutTab('about'); setShowAboutModal(true); }}
+            title="About MicMose Photo Culler Pro & System Specs"
+            role="button"
+            tabIndex={0}
           >
             <img
-              src={logoMode === 'troll' ? logoTroll : logoRegular}
-              alt={logoMode === 'troll' ? 'MicMose Troll Logo' : 'MicMose Regular Logo'}
+              src={logoRegular}
+              alt="MicMose Photo Culler Pro Logo"
               className="brand-logo-img"
             />
             <div className="brand-text-block">
               <div className="brand-title-row">
                 <span className="brand-mark">MicMose Photo Culler Pro</span>
-                <span className="brand-config-badge">ABOUT &amp; SETTINGS ⚙</span>
+                <span className="brand-config-badge">ABOUT ⓘ</span>
               </div>
               <span className="brand-tagline">Parallel GPU Culling &amp; Adobe Camera Raw (ACR) Studio.</span>
             </div>
-          </button>
+          </div>
         </div>
         <div className="system-meta">
           <span className="learning-pill" title="Learning AI adapts to your manual star rating overrides">
@@ -1634,7 +1627,7 @@ function App() {
         </div>
       )}
 
-      {/* Editorial Modal Dialog for About & Studio Settings (Logo Choice) */}
+      {/* Editorial Modal Dialog for Settings & About */}
       {showAboutModal && (
         <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowAboutModal(false)}>
           <div className="editorial-dialog about-dialog" onClick={(e) => e.stopPropagation()}>
@@ -1642,17 +1635,17 @@ function App() {
               <div className="about-tabs-row">
                 <button
                   type="button"
-                  className={`about-tab-btn ${aboutTab === 'about' ? 'active' : ''}`}
-                  onClick={() => setAboutTab('about')}
-                >
-                  01 // ABOUT THIS APP
-                </button>
-                <button
-                  type="button"
                   className={`about-tab-btn ${aboutTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setAboutTab('settings')}
                 >
-                  02 // SETTINGS (LOGO: {logoMode.toUpperCase()})
+                  01 // STUDIO SETTINGS
+                </button>
+                <button
+                  type="button"
+                  className={`about-tab-btn ${aboutTab === 'about' ? 'active' : ''}`}
+                  onClick={() => setAboutTab('about')}
+                >
+                  02 // ABOUT THIS APP
                 </button>
               </div>
               <button
@@ -1665,12 +1658,101 @@ function App() {
               </button>
             </div>
 
-            {aboutTab === 'about' ? (
+            {aboutTab === 'settings' ? (
+              <div className="dialog-body settings-body">
+                {/* Visual Theme Section */}
+                <div className="settings-section">
+                  <div className="settings-sec-head">
+                    <span className="settings-section-title">01 // WORKSTATION THEME</span>
+                    <span className="settings-section-sub">Switch between Dark Graphite Cue-Sheet and High-Key Chalk styles:</span>
+                  </div>
+                  <div className="theme-options-grid">
+                    <button
+                      type="button"
+                      className={`theme-option-card ${theme === 'dark' ? 'active-card' : ''}`}
+                      onClick={() => setTheme('dark')}
+                    >
+                      <span className="theme-option-name">☾ DARK GRAPHITE</span>
+                      <span className="theme-option-desc">Recommended for studio darkrooms &amp; colour grading accuracy.</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`theme-option-card ${theme === 'light' ? 'active-card' : ''}`}
+                      onClick={() => setTheme('light')}
+                    >
+                      <span className="theme-option-name">☀ CHALK EDITORIAL</span>
+                      <span className="theme-option-desc">High-contrast daylight theme for location laptop inspections.</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Hardware Telemetry Section */}
+                <div className="settings-section">
+                  <div className="settings-sec-head">
+                    <span className="settings-section-title">02 // HARDWARE TELEMETRY &amp; ACCELERATION</span>
+                    <span className="settings-section-sub">Active OpenCL and ONNX Runtime DirectML engine status:</span>
+                  </div>
+                  <div className="settings-hw-card">
+                    <div className="hw-row">
+                      <span className="hw-k">PRIMARY DEVICE</span>
+                      <span className="hw-v highlight">{hwStatus.device_name}</span>
+                    </div>
+                    <div className="hw-row">
+                      <span className="hw-k">BACKEND PIPELINE</span>
+                      <span className="hw-v">{hwStatus.backend}</span>
+                    </div>
+                    <div className="hw-row">
+                      <span className="hw-k">GPU LOAD / VRAM</span>
+                      <span className="hw-v">{hwStatus.gpu_util_percent}% GPU | {hwStatus.vram_used_mb}MB / {hwStatus.vram_total_mb}MB</span>
+                    </div>
+                    <div className="hw-row">
+                      <span className="hw-k">ADAPTIVE AI PROFILE</span>
+                      <span className="hw-v">{hwStatus.learning?.style_label || 'Baseline Profile'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Keyboard Shortcuts Section */}
+                <div className="settings-section">
+                  <div className="settings-sec-head">
+                    <span className="settings-section-title">03 // ESSENTIAL KEYBOARD SHORTCUTS</span>
+                    <span className="settings-section-sub">Speed culling hotkeys for rapid one-handed review:</span>
+                  </div>
+                  <div className="shortcuts-grid">
+                    <div className="shortcut-item"><kbd className="sc-key">1 - 3</kbd> <span className="sc-desc">Rate Stars (1=Reject, 2=Review, 3=Keep)</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">P / X</kbd> <span className="sc-desc">Quick Pick (3★) / Quick Reject (1★)</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">H</kbd> <span className="sc-desc">Toggle Hero Highlight Flag</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">Space</kbd> <span className="sc-desc">Toggle 100% Loupe Inspection View</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">← / →</kbd> <span className="sc-desc">Navigate Previous / Next Image</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">Esc</kbd> <span className="sc-desc">Exit Loupe / Close Dialogs</span></div>
+                  </div>
+                </div>
+
+                <div className="dialog-actions">
+                  <button
+                    type="button"
+                    className="nr-btn mineral"
+                    onClick={() => setAboutTab('about')}
+                  >
+                    <span>VIEW ABOUT &amp; SPECS</span>
+                    <span>[SPECS ↗]</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="nr-btn"
+                    onClick={() => setShowAboutModal(false)}
+                  >
+                    <span>CLOSE</span>
+                    <span>[ESC]</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
               <div className="dialog-body about-body">
                 <div className="about-hero-row">
                   <img
-                    src={logoMode === 'troll' ? logoTroll : logoRegular}
-                    alt="MicMose Logo"
+                    src={logoRegular}
+                    alt="MicMose Photo Culler Pro Logo"
                     className="about-hero-logo"
                   />
                   <div className="about-hero-text">
@@ -1721,68 +1803,8 @@ function App() {
                     className="nr-btn mineral"
                     onClick={() => setAboutTab('settings')}
                   >
-                    <span>CONFIGURE LOGO</span>
+                    <span>STUDIO SETTINGS</span>
                     <span>[SETTINGS]</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="nr-btn"
-                    onClick={() => setShowAboutModal(false)}
-                  >
-                    <span>CLOSE</span>
-                    <span>[ESC]</span>
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="dialog-body settings-body">
-                <div className="settings-desc-row">
-                  <span className="settings-section-title">CHOOSE APP LOGO VARIANT</span>
-                  <span className="settings-section-sub">Switches the identity mark in the top-left studio bar:</span>
-                </div>
-
-                <div className="logo-picker-grid">
-                  <div
-                    className={`logo-card ${logoMode === 'regular' ? 'active-logo' : ''}`}
-                    onClick={() => handleSelectLogo('regular')}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="logo-preview-box">
-                      <img src={logoRegular} alt="Regular Studio Logo" className="logo-card-img" />
-                    </div>
-                    <div className="logo-card-info">
-                      <div className="logo-card-title">REGULAR LOGO</div>
-                      <div className="logo-card-badge">{logoMode === 'regular' ? '● ACTIVE' : 'SELECT'}</div>
-                      <p className="logo-card-p">Official editorial studio emblem with camera aperture &amp; precision crosshairs.</p>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`logo-card ${logoMode === 'troll' ? 'active-logo' : ''}`}
-                    onClick={() => handleSelectLogo('troll')}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    <div className="logo-preview-box">
-                      <img src={logoTroll} alt="Troll Meme Logo" className="logo-card-img" />
-                    </div>
-                    <div className="logo-card-info">
-                      <div className="logo-card-title">TROLL LOGO (MEME)</div>
-                      <div className="logo-card-badge">{logoMode === 'troll' ? '● ACTIVE' : 'SELECT'}</div>
-                      <p className="logo-card-p">Trollface meme edition lmao. For high-chaos culling sessions.</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="dialog-actions">
-                  <button
-                    type="button"
-                    className="nr-btn mineral"
-                    onClick={() => setShowAboutModal(false)}
-                  >
-                    <span>APPLY &amp; RETURN</span>
-                    <span>[ENTER]</span>
                   </button>
                   <button
                     type="button"

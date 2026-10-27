@@ -22,5 +22,5 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
   - OpenCV OpenCL UMat matrix pipeline on NVIDIA RTX GPUs.
   - ONNX Runtime DirectML for neural subject detection.
   - Transparent multi-core CPU thread-pool fallback.
-- **🎛️ Top-Left Studio Hub & Logo Switcher**: Interactive About dialog and live switcher between the **Official Editorial Studio Logo** and the **Troll Logo (Meme Edition)**.
+- **🎛️ Dedicated Top-Left Studio Settings & About Hub**: Dedicated button on the far left for instant access to workstation preferences, hardware telemetry, and neural culling specifications.
 - **🔒 100% Offline & Private**: Zero external network calls. All processing runs locally on your device.
