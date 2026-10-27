@@ -1,42 +1,25 @@
-# MicMose Photo Culler Pro v1.0.1 (Build 101) — Production Studio Release
+# MicMose Photo Culler Pro v1.0.2 (Build 102) — Dual Windows & macOS Production Release
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
 ### 📦 Available Release Packages
 
-- **`MicMose Photo Culler Pro.exe`** — Portable standalone Windows application. Run directly anywhere without installation.
-- **`MicMose-Photo-Culler-Pro-Setup.exe`** — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
-- **`MicMose-Photo-Culler-Pro.msi`** — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
-- **`MicMose-Photo-Culler-Pro-macOS.dmg`** — Native Apple Silicon & Intel macOS disk image installer.
+- **`MicMose-Photo-Culler-Pro-macOS.dmg`** (127.3 MB) — Native Apple Silicon (M1/M2/M3/M4) & Intel macOS disk image installer.
+- **`MicMose Photo Culler Pro.exe`** (127.4 MB) — Portable standalone Windows application. Run directly anywhere without installation.
+- **`MicMose-Photo-Culler-Pro-Setup.exe`** (128.8 MB) — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
+- **`MicMose-Photo-Culler-Pro.msi`** (126.8 MB) — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
 - **`MicMoseStudio.cer`** — Official Studio Authenticode public certificate for publisher verification.
 - **`SHA256SUMS.txt`** — SHA-256 cryptographic checksums for release verification.
 
 ---
 
-### 🛡️ Windows SmartScreen / "Windows Protected Your PC" Notice
+### ⚡ What's New in v1.0.2 (Build 102)
 
-Because **MicMose Photo Culler Pro** is an open-source project without a multi-thousand-dollar commercial EV certificate, Microsoft Defender SmartScreen displays a warning on newly downloaded releases until download volume establishes cloud reputation:
-
-1. **How to Run**:
-   - On the SmartScreen dialog, click **"More info"**
-   - Click **"Run anyway"**
-2. **Alternative (PowerShell)**:
-   - If running from a downloaded `.zip` or directory, unblock the file:
-     ```powershell
-     Unblock-File -Path ".\MicMose Photo Culler Pro.exe"
-     ```
-3. **Digital Signature Verification**:
-   - Right-click the `.exe` or `.msi` ➔ **Properties** ➔ **Digital Signatures** to verify the Authenticode signature by `MicMose Photo Culler Pro` (Naphatphurin Prachantasena) timestamped by DigiCert.
-
----
-
-### ⚡ What's New in v1.0.1 (Build 101)
-
-- **🎛️ Far-Left Settings Button**: Moved the dedicated **`[ ⚙ SETTINGS ]`** button to the far left edge of the identity bar for instant access to workstation theme options, hardware telemetry, and keyboard shortcuts.
-- **📷 Aperture Studio Emblem as Default**: Locked the official camera aperture studio emblem as the permanent default logo across the application executable icon, header bar, and about modal.
-- **🧹 Removed Meme Switcher**: Completely removed the troll logo and its toggle switcher.
-- **🔏 Authenticode Code Signing**: Digitally signed all release binaries with SHA-256 and RFC 3161 DigiCert timestamping.
-- **🎨 High-Contrast Settings & About UI**: Redesigned dialog featuring dark graphite theming, high-contrast typography, live GPU telemetry, and quick theme switcher.
+- **🍏 Official macOS Release (`.dmg`)**: First native macOS release with Apple Silicon M-series & Intel support, packaged as an interactive `.dmg` disk image with retina icon integration.
+- **🎨 Calibrated Chalk Palette (`#F4F3EE`)**: Calibrated daylight Chalk mode across all panels to warm non-glare `#F4F3EE` paper tone.
+- **📷 Harmonized Studio Aperture Emblem**: Seamlessly re-themed the studio mark into exact theme colors (Mineral Blue `#275D63`, Signal Vermilion `#E54C35`, Chalk `#F4F3EE`, Obsidian `#11120F`) with clean transparency.
+- **🎛️ Far-Left Settings Button**: Dedicated **`[ ⚙ SETTINGS ]`** button placed on the far left edge of the identity bar for quick access to theme switching, live GPU telemetry, and keyboard shortcuts.
+- **🔏 Authenticode Code Signing**: Digitally signed all Windows release packages with SHA-256 and RFC 3161 DigiCert timestamping.
 
 ---
 

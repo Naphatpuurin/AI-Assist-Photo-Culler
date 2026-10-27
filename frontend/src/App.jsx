@@ -1757,7 +1757,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
-                    <div className="about-version">VERSION 1.0.1 // BUILD 101 // PRODUCTION STUDIO RELEASE</div>
+                    <div className="about-version">VERSION 1.0.2 // BUILD 102 // PRODUCTION STUDIO RELEASE</div>
                     <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
                     <a
                       href="https://github.com/Naphatpuurin/AI-Assist-Photo-Culler"
