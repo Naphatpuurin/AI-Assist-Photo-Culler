@@ -26,10 +26,14 @@ backend/dist/
 frontend/dist/
 build/
 backend/build/
+release/*.exe
+release/*.msi
 *.exe
+*.msi
 *.dll
 *.dylib
 *.pyd
+*.wixpdb
 
 # User configs & local machine profiles
 backend/learning_profile.json

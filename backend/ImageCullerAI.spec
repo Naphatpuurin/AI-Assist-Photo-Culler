@@ -14,7 +14,9 @@ a = Analysis(
     datas=[
         ('../frontend/dist', 'frontend/dist'),
         ('yolov8n.onnx', '.'),
-        ('yolov8n.pt', '.')
+        ('yolov8n.pt', '.'),
+        ('app.ico', '.'),
+        ('app.png', '.')
     ] + ort_datas + rawpy_datas,
     hiddenimports=['onnxruntime', 'pynvml', 'rawpy', 'exifread', 'raw_utils'],
     hookspath=[],
@@ -32,7 +34,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='ImageCullerAI',
+    name='MicMosePhotoCullerPro',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -45,4 +47,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='app.ico',
 )

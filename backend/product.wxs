@@ -1,0 +1,48 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="MicMose Photo Culler Pro" 
+           Manufacturer="Naphatphurin Prachantasena" 
+           Version="1.0.0.0" 
+           UpgradeCode="4C6F1693-0DB9-4A9B-A152-A9F68B6EBE29"
+           Scope="perUserOrMachine">
+    
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="app.ico" />
+    <Property Id="ARPPRODUCTICON" Value="AppIcon" />
+    <Property Id="ARPHELPLINK" Value="https://github.com/Naphatpuurin/AI-Assist-Photo-Culler" />
+
+    <StandardDirectory Id="ProgramFiles6432Folder">
+      <Directory Id="INSTALLFOLDER" Name="MicMose Photo Culler Pro">
+        <Component Id="MainExecutable" Guid="3E4F8B71-92A3-4B52-87C1-4A596281A123">
+          <File Id="MicMoseExe" Source="dist\MicMosePhotoCullerPro.exe" KeyPath="yes">
+            <Shortcut Id="DesktopShortcut"
+                      Directory="DesktopFolder"
+                      Name="MicMose Photo Culler Pro"
+                      WorkingDirectory="INSTALLFOLDER"
+                      Icon="AppIcon"
+                      Advertise="yes" />
+            <Shortcut Id="ProgramMenuShortcut"
+                      Directory="ProgramMenuFolder"
+                      Name="MicMose Photo Culler Pro"
+                      WorkingDirectory="INSTALLFOLDER"
+                      Icon="AppIcon"
+                      Advertise="yes" />
+          </File>
+        </Component>
+        <Component Id="AppIconComponent" Guid="D5C8A714-2C4B-4E7F-9908-1123456789AB">
+          <File Id="AppIconFile" Source="app.ico" KeyPath="yes" />
+        </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="DesktopFolder" />
+    <StandardDirectory Id="ProgramMenuFolder" />
+
+    <Feature Id="ProductFeature" Title="MicMose Photo Culler Pro" Level="1">
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="AppIconComponent" />
+    </Feature>
+  </Package>
+</Wix>
