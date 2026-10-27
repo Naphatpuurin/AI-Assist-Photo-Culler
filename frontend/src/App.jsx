@@ -1,8 +1,28 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import './App.css'
+import logoRegular from './assets/logo_regular.png'
+import logoTroll from './assets/logo_troll.png'
 
 function App() {
   const [theme, setTheme] = useState('dark');
+  const [logoMode, setLogoMode] = useState(() => {
+    try {
+      return localStorage.getItem('micmose_logo_mode') || 'regular';
+    } catch {
+      return 'regular';
+    }
+  });
+  const [showAboutModal, setShowAboutModal] = useState(false);
+  const [aboutTab, setAboutTab] = useState('about'); // 'about' | 'settings'
+
+  const handleSelectLogo = (mode) => {
+    setLogoMode(mode);
+    try {
+      localStorage.setItem('micmose_logo_mode', mode);
+    } catch {
+      // ignore
+    }
+  };
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -357,6 +377,10 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (showAboutModal) {
+        if (e.key === 'Escape') setShowAboutModal(false);
+        return;
+      }
       if (dialogMode || e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') {
         if (e.key === 'Escape') setDialogMode(null);
         return;
@@ -394,7 +418,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
+  }, [showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
 
   const loadDirectoryFromPath = async (dirPath) => {
     const trimmed = dirPath.trim();
@@ -614,8 +638,25 @@ function App() {
       {/* 1. Compact Identity Bar */}
       <header className="identity-bar">
         <div className="brand-group">
-          <span className="brand-mark">MicMose Photo Culler Pro</span>
-          <span className="brand-tagline">Parallel GPU Culling &amp; Adobe Camera Raw (ACR) Studio.</span>
+          <button
+            type="button"
+            className="brand-logo-btn"
+            onClick={() => setShowAboutModal(true)}
+            title="About MicMose Photo Culler Pro & Settings"
+          >
+            <img
+              src={logoMode === 'troll' ? logoTroll : logoRegular}
+              alt={logoMode === 'troll' ? 'MicMose Troll Logo' : 'MicMose Regular Logo'}
+              className="brand-logo-img"
+            />
+            <div className="brand-text-block">
+              <div className="brand-title-row">
+                <span className="brand-mark">MicMose Photo Culler Pro</span>
+                <span className="brand-config-badge">ABOUT &amp; SETTINGS ⚙</span>
+              </div>
+              <span className="brand-tagline">Parallel GPU Culling &amp; Adobe Camera Raw (ACR) Studio.</span>
+            </div>
+          </button>
         </div>
         <div className="system-meta">
           <span className="learning-pill" title="Learning AI adapts to your manual star rating overrides">
@@ -1590,6 +1631,171 @@ function App() {
               </div>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* Editorial Modal Dialog for About & Studio Settings (Logo Choice) */}
+      {showAboutModal && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" onClick={() => setShowAboutModal(false)}>
+          <div className="editorial-dialog about-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-head">
+              <div className="about-tabs-row">
+                <button
+                  type="button"
+                  className={`about-tab-btn ${aboutTab === 'about' ? 'active' : ''}`}
+                  onClick={() => setAboutTab('about')}
+                >
+                  01 // ABOUT THIS APP
+                </button>
+                <button
+                  type="button"
+                  className={`about-tab-btn ${aboutTab === 'settings' ? 'active' : ''}`}
+                  onClick={() => setAboutTab('settings')}
+                >
+                  02 // SETTINGS (LOGO: {logoMode.toUpperCase()})
+                </button>
+              </div>
+              <button
+                type="button"
+                className="close-tab-btn"
+                onClick={() => setShowAboutModal(false)}
+                title="Close Dialog [ESC]"
+              >
+                ESC ✕
+              </button>
+            </div>
+
+            {aboutTab === 'about' ? (
+              <div className="dialog-body about-body">
+                <div className="about-hero-row">
+                  <img
+                    src={logoMode === 'troll' ? logoTroll : logoRegular}
+                    alt="MicMose Logo"
+                    className="about-hero-logo"
+                  />
+                  <div className="about-hero-text">
+                    <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
+                    <div className="about-version">VERSION 1.0.0 // PRODUCTION STUDIO RELEASE</div>
+                    <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
+                    <a
+                      href="https://github.com/Naphatpuurin/AI-Assist-Photo-Culler"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="about-repo-link"
+                    >
+                      GITHUB: github.com/Naphatpuurin/AI-Assist-Photo-Culler ↗
+                    </a>
+                  </div>
+                </div>
+
+                <div className="about-spec-grid">
+                  <div className="about-spec-box">
+                    <div className="spec-label">01 // NEURAL SHARPNESS &amp; EYE FOCUS</div>
+                    <div className="spec-desc">
+                      High-frequency Laplacian variance isolated strictly within detected person &amp; eye bounding boxes. Shallow depth-of-field background bokeh ($f/1.2$–$f/2.8$) never degrades score.
+                    </div>
+                  </div>
+                  <div className="about-spec-box">
+                    <div className="spec-label">02 // PURE THRESHOLD CULLING (1–10 SCALE)</div>
+                    <div className="spec-desc">
+                      Deterministic evaluation calibrated on real event shoots. Level 5 balanced baseline delivers a proven ~38–40% keeper rate without artificial percentile penalties.
+                    </div>
+                  </div>
+                  <div className="about-spec-box">
+                    <div className="spec-label">03 // HARDWARE MATRIX ACCELERATION</div>
+                    <div className="spec-desc">
+                      OpenCV OpenCL UMat GPU pipeline (NVIDIA GeForce RTX 5060 / 40 / 30 series) + ONNX Runtime DirectML with transparent multi-core CPU fallback.
+                    </div>
+                  </div>
+                  <div className="about-spec-box">
+                    <div className="spec-label">04 // 22+ RAW FORMATS &amp; ACR 16.0</div>
+                    <div className="spec-desc">
+                      Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF, Adobe DNG with embedded JPEG previews (10–50ms) and instant `.xmp` sidecar export for Lightroom Classic.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dialog-actions">
+                  <button
+                    type="button"
+                    className="nr-btn mineral"
+                    onClick={() => setAboutTab('settings')}
+                  >
+                    <span>CONFIGURE LOGO</span>
+                    <span>[SETTINGS]</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="nr-btn"
+                    onClick={() => setShowAboutModal(false)}
+                  >
+                    <span>CLOSE</span>
+                    <span>[ESC]</span>
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="dialog-body settings-body">
+                <div className="settings-desc-row">
+                  <span className="settings-section-title">CHOOSE APP LOGO VARIANT</span>
+                  <span className="settings-section-sub">Switches the identity mark in the top-left studio bar:</span>
+                </div>
+
+                <div className="logo-picker-grid">
+                  <div
+                    className={`logo-card ${logoMode === 'regular' ? 'active-logo' : ''}`}
+                    onClick={() => handleSelectLogo('regular')}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="logo-preview-box">
+                      <img src={logoRegular} alt="Regular Studio Logo" className="logo-card-img" />
+                    </div>
+                    <div className="logo-card-info">
+                      <div className="logo-card-title">REGULAR LOGO</div>
+                      <div className="logo-card-badge">{logoMode === 'regular' ? '● ACTIVE' : 'SELECT'}</div>
+                      <p className="logo-card-p">Official editorial studio emblem with camera aperture &amp; precision crosshairs.</p>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`logo-card ${logoMode === 'troll' ? 'active-logo' : ''}`}
+                    onClick={() => handleSelectLogo('troll')}
+                    role="button"
+                    tabIndex={0}
+                  >
+                    <div className="logo-preview-box">
+                      <img src={logoTroll} alt="Troll Meme Logo" className="logo-card-img" />
+                    </div>
+                    <div className="logo-card-info">
+                      <div className="logo-card-title">TROLL LOGO (MEME)</div>
+                      <div className="logo-card-badge">{logoMode === 'troll' ? '● ACTIVE' : 'SELECT'}</div>
+                      <p className="logo-card-p">Trollface meme edition lmao. For high-chaos culling sessions.</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="dialog-actions">
+                  <button
+                    type="button"
+                    className="nr-btn mineral"
+                    onClick={() => setShowAboutModal(false)}
+                  >
+                    <span>APPLY &amp; RETURN</span>
+                    <span>[ENTER]</span>
+                  </button>
+                  <button
+                    type="button"
+                    className="nr-btn"
+                    onClick={() => setShowAboutModal(false)}
+                  >
+                    <span>CLOSE</span>
+                    <span>[ESC]</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
