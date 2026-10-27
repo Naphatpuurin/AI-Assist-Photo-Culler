@@ -160,10 +160,9 @@ Open `http://localhost:5173` in your browser.
 
 ---
 
-## 🛠️ Building the Standalone Executable
+## 🛠️ Building Standalone Binaries
 
-To compile the single-binary Windows desktop distribution:
-
+### Windows (Executable & Installers)
 ```bash
 # 1. Build the production React frontend bundle
 cd frontend
@@ -174,10 +173,10 @@ cd ../backend
 pyinstaller ImageCullerAI.spec
 ```
 
-The resulting standalone executable will be located at:
-```
-backend/dist/ImageCullerAI.exe
-```
+The resulting standalone executable will be located at `backend/dist/MicMosePhotoCullerPro.exe`.
+
+### macOS (Apple Silicon & Intel)
+See the complete [**macOS Build Guide (docs/MACOS_BUILD.md)**](docs/MACOS_BUILD.md) for compiling `.app` bundles and packaging into `.dmg` disk images locally or automatically via GitHub Actions.
 
 ---
 
