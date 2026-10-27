@@ -1,6 +1,7 @@
 ; Inno Setup Script for MicMose Photo Culler Pro - Dark Editorial Theme
 #define MyAppName "MicMose Photo Culler Pro"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
+#define MyAppBuild "101"
 #define MyAppPublisher "Naphatphurin Prachantasena"
 #define MyAppURL "https://github.com/Naphatpuurin/AI-Assist-Photo-Culler"
 #define MyAppExeName "MicMose Photo Culler Pro.exe"
@@ -26,6 +27,12 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
+VersionInfoVersion=1.0.1.101
+VersionInfoCompany=Naphatphurin Prachantasena
+VersionInfoDescription=MicMose Photo Culler Pro Setup
+VersionInfoCopyright=Copyright (C) 2026 Naphatphurin Prachantasena
+VersionInfoProductName=MicMose Photo Culler Pro
+VersionInfoProductVersion=1.0.1.101
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -100,7 +107,7 @@ begin
   WizardForm.FileNameLabel.Font.Color := $354CE5; // Vermilion #e54c35
   
   // Monospace cue-sheet notation watermark
-  WizardForm.BeveledLabel.Caption := ' MICMOSE // PHOTO CULLER PRO [VER 1.0.0] ';
+  WizardForm.BeveledLabel.Caption := ' MICMOSE // PHOTO CULLER PRO [VER 1.0.1 // BUILD 101] ';
   WizardForm.BeveledLabel.Font.Color := $6B8585;
   WizardForm.BeveledLabel.Font.Name := 'Consolas';
 end;

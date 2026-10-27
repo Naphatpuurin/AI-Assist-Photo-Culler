@@ -24,6 +24,12 @@
 
 It combines **pure-threshold neural sharpness analysis**, **native camera RAW decoding**, **full EXIF/ACR telemetry**, and **parallel GPU matrix processing** into an editorial dark desktop workstation.
 
+> [!NOTE]
+> **Windows SmartScreen / "Windows Protected Your PC"**:
+> Because this is a newly released independent open-source application, Windows SmartScreen may show an *"Unrecognized app"* warning on downloaded binaries until download reputation is built in Microsoft's cloud database.
+> - Click **"More info"** ➔ **"Run anyway"** to launch.
+> - All releases are digitally signed with Authenticode (viewable under File Properties ➔ Digital Signatures) and verified 100% offline and telemetry-free.
+
 ---
 
 ## 🖥️ Interface & Visual Overview
