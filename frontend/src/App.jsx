@@ -821,26 +821,6 @@ function App() {
             <span className="settings-icon">⚙</span>
             <span className="settings-label">SETTINGS</span>
           </button>
-          <div
-            className="brand-block"
-            onClick={() => { setAboutTab('about'); setShowAboutModal(true); }}
-            title="About MicMose Photo Culler Pro & System Specs"
-            role="button"
-            tabIndex={0}
-          >
-            <img
-              src={logoRegular}
-              alt="MicMose Photo Culler Pro Logo"
-              className="brand-logo-img"
-            />
-            <div className="brand-text-block">
-              <div className="brand-title-row">
-                <span className="brand-mark">MicMose Photo Culler Pro</span>
-                <span className="brand-config-badge">ABOUT ⓘ</span>
-              </div>
-              <span className="brand-tagline">Parallel GPU Culling &amp; Adobe Camera Raw (ACR) Studio.</span>
-            </div>
-          </div>
         </div>
         <div className="system-meta">
           <span className="learning-pill" title="Learning AI adapts to your manual star rating overrides">
