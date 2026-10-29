@@ -65,7 +65,7 @@ jobs:
         run: |
           TAG_NAME="${{ github.ref_name }}"
           RAW_VER="${TAG_NAME#v}"
-          if [ -z "$RAW_VER" ] || [ "$RAW_VER" = "${{ github.ref }}" ]; then
+          if ! [[ "$RAW_VER" =~ ^[0-9] ]]; then
             RAW_VER="1.0.6"
           fi
           echo "Packaging version: $RAW_VER"
