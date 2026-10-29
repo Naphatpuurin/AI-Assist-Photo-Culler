@@ -544,12 +544,25 @@ def parse_semver(ver_str: str):
 
 def match_platform_asset(assets: list):
     is_mac = sys.platform == "darwin"
+    is_linux = sys.platform.startswith("linux")
     if is_mac:
         for a in assets:
             if a.get("name", "").lower().endswith(".dmg"):
                 return a
+    elif is_linux:
+        # Prefer AppImage, then .deb, then .tar.gz
+        for a in assets:
+            if a.get("name", "").lower().endswith(".appimage"):
+                return a
+        for a in assets:
+            if a.get("name", "").lower().endswith(".deb"):
+                return a
+        for a in assets:
+            name = a.get("name", "").lower()
+            if name.endswith((".tar.gz", ".tar.xz")):
+                return a
     else:
-        # Prefer Inno Setup installer executable
+        # Windows: Prefer Inno Setup installer executable
         for a in assets:
             name = a.get("name", "").lower()
             if "setup" in name and name.endswith(".exe"):
@@ -566,7 +579,7 @@ def match_platform_asset(assets: list):
     # Universal fallback: any installer/archive
     for a in assets:
         name = a.get("name", "").lower()
-        if name.endswith((".exe", ".dmg", ".msi", ".zip")):
+        if name.endswith((".exe", ".dmg", ".msi", ".zip", ".appimage", ".deb", ".tar.gz")):
             return a
     return None
 
@@ -722,6 +735,18 @@ def _run_download_and_install(download_url: str, asset_name: str):
         # Launch the installer
         if sys.platform == "darwin":
             subprocess.Popen(["open", dest_file])
+        elif sys.platform.startswith("linux"):
+            if dest_file.lower().endswith(".appimage"):
+                import stat
+                try:
+                    st = os.stat(dest_file)
+                    os.chmod(dest_file, st.st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
+                except Exception:
+                    pass
+            try:
+                subprocess.Popen(["xdg-open", dest_file])
+            except Exception:
+                subprocess.Popen([dest_file])
         else:
             if dest_file.lower().endswith(".msi"):
                 subprocess.Popen(["msiexec.exe", "/i", dest_file], shell=False)

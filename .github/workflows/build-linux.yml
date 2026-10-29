@@ -1,0 +1,169 @@
+name: Build Linux Release (.AppImage & .deb)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install System Libraries & WebKitGTK
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.0-dev \
+            libgtk-3-dev \
+            libgirepository1.0-dev \
+            libcairo2-dev \
+            libgl1-mesa-glx \
+            file \
+            zsync
+
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pyinstaller pywebview[gtk] pycairo PyGObject
+
+      - name: Build Linux Standalone Executable
+        run: |
+          cd backend
+          pyinstaller ImageCullerAI_linux.spec --clean --noconfirm
+
+      - name: Package AppImage, Debian (.deb) & Portable Tarball
+        run: |
+          TAG_NAME="${{ github.ref_name }}"
+          RAW_VER="${TAG_NAME#v}"
+          if [ -z "$RAW_VER" ] || [ "$RAW_VER" = "${{ github.ref }}" ]; then
+            RAW_VER="1.0.6"
+          fi
+          echo "Packaging version: $RAW_VER"
+
+          mkdir -p release
+
+          # -------------------------------------------------------------
+          # 1. Package AppImage
+          # -------------------------------------------------------------
+          mkdir -p AppDir/usr/bin
+          mkdir -p AppDir/usr/share/applications
+          mkdir -p AppDir/usr/share/icons/hicolor/256x256/apps
+
+          cp backend/dist/MicMosePhotoCullerPro AppDir/usr/bin/
+          cp backend/app.png AppDir/usr/share/icons/hicolor/256x256/apps/micmose-photo-culler-pro.png
+          cp backend/app.png AppDir/micmose-photo-culler-pro.png
+          cp backend/app.png AppDir/.DirIcon
+
+          cat << 'EOF' > AppDir/usr/share/applications/micmose-photo-culler-pro.desktop
+          [Desktop Entry]
+          Name=MicMose Photo Culler Pro
+          Comment=High-throughput AI-Assisted Photo Culling & RAW Telemetry Studio
+          Exec=MicMosePhotoCullerPro
+          Icon=micmose-photo-culler-pro
+          Terminal=false
+          Type=Application
+          Categories=Graphics;Photography;
+          EOF
+
+          cp AppDir/usr/share/applications/micmose-photo-culler-pro.desktop AppDir/
+
+          cat << 'EOF' > AppDir/AppRun
+          #!/bin/sh
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          export PATH="${HERE}/usr/bin:${PATH}"
+          exec "${HERE}/usr/bin/MicMosePhotoCullerPro" "$@"
+          EOF
+          chmod +x AppDir/AppRun
+
+          # Download and extract appimagetool (avoids FUSE requirements on CI)
+          curl -sL -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool
+          ./appimagetool --appimage-extract
+          export ARCH=x86_64
+          ./squashfs-root/AppRun AppDir "release/MicMose-Photo-Culler-Pro-x86_64.AppImage"
+          chmod +x "release/MicMose-Photo-Culler-Pro-x86_64.AppImage"
+
+          # -------------------------------------------------------------
+          # 2. Package Debian (.deb)
+          # -------------------------------------------------------------
+          DEB_DIR="deb_pkg"
+          mkdir -p "$DEB_DIR/DEBIAN"
+          mkdir -p "$DEB_DIR/usr/bin"
+          mkdir -p "$DEB_DIR/usr/share/applications"
+          mkdir -p "$DEB_DIR/usr/share/icons/hicolor/256x256/apps"
+
+          cp backend/dist/MicMosePhotoCullerPro "$DEB_DIR/usr/bin/micmose-photo-culler-pro"
+          chmod +x "$DEB_DIR/usr/bin/micmose-photo-culler-pro"
+          cp AppDir/usr/share/applications/micmose-photo-culler-pro.desktop "$DEB_DIR/usr/share/applications/"
+          cp backend/app.png "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/micmose-photo-culler-pro.png"
+
+          cat << EOF > "$DEB_DIR/DEBIAN/control"
+          Package: micmose-photo-culler-pro
+          Version: $RAW_VER
+          Section: graphics
+          Priority: optional
+          Architecture: amd64
+          Depends: libc6, libwebkit2gtk-4.0-37 | libwebkit2gtk-4.1-0
+          Maintainer: Naphatphurin Prachantasena <naphatphurin@users.noreply.github.com>
+          Description: High-throughput AI-assisted photo culling & telemetric inspection studio.
+          EOF
+
+          dpkg-deb -b "$DEB_DIR" "release/MicMose-Photo-Culler-Pro_${RAW_VER}_amd64.deb"
+
+          # -------------------------------------------------------------
+          # 3. Portable Tarball (.tar.gz)
+          # -------------------------------------------------------------
+          TAR_DIR="portable_linux"
+          mkdir -p "$TAR_DIR"
+          cp backend/dist/MicMosePhotoCullerPro "$TAR_DIR/MicMosePhotoCullerPro"
+          cp backend/app.png "$TAR_DIR/app.png"
+          cat << 'EOF' > "$TAR_DIR/run.sh"
+          #!/bin/sh
+          SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
+          cd "$SCRIPT_DIR"
+          exec ./MicMosePhotoCullerPro "$@"
+          EOF
+          chmod +x "$TAR_DIR/MicMosePhotoCullerPro" "$TAR_DIR/run.sh"
+          tar -czvf "release/MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz" -C "$TAR_DIR" .
+
+      - name: Upload Linux Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release-packages
+          path: release/*
+
+      - name: Attach Linux Packages to Release (if tag pushed)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ github.ref_name }} \
+            release/MicMose-Photo-Culler-Pro-x86_64.AppImage \
+            release/*.deb \
+            release/MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz \
+            --clobber

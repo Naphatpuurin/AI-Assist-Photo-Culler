@@ -178,6 +178,9 @@ The resulting standalone executable will be located at `backend/dist/MicMosePhot
 ### macOS (Apple Silicon & Intel)
 See the complete [**macOS Build Guide (docs/MACOS_BUILD.md)**](docs/MACOS_BUILD.md) for compiling `.app` bundles and packaging into `.dmg` disk images locally or automatically via GitHub Actions.
 
+### Linux (Ubuntu, Debian, Fedora, Arch, AppImage)
+See the complete [**Linux Build & Run Guide (docs/LINUX_BUILD.md)**](docs/LINUX_BUILD.md) for running **AppImage**, installing **Debian (`.deb`)** packages, or compiling standalone Linux binaries locally or automatically via GitHub Actions.
+
 ---
 
 ## ⌨️ Keyboard Shortcuts & Workflow

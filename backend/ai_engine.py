@@ -110,7 +110,24 @@ class AIEngine:
                         self.device_name = f"{hw_label} (GPU Parallel)"
                         print(f"[*] Initialized GPU Engine on: {self.device_name}")
 
-                # Automatic CPU Fallback if DirectML GPU is unavailable or unsupported on host machine
+                # CUDA GPU support (standard on Linux workstations with NVIDIA GPUs)
+                if self.ort_session is None and 'CUDAExecutionProvider' in avail:
+                    try:
+                        self.ort_session = ort.InferenceSession(
+                            onnx_path,
+                            sess_options=sess_opts,
+                            providers=['CUDAExecutionProvider', 'CPUExecutionProvider']
+                        )
+                        self.gpu_active = 'CUDAExecutionProvider' in self.ort_session.get_providers()
+                        if self.gpu_active:
+                            hw_label = nv_name or ocl_device_name or "NVIDIA CUDA GPU"
+                            self.backend_type = "CUDA + OpenCL GPU" if self.opencl_active else "CUDA GPU"
+                            self.device_name = f"{hw_label} (GPU Parallel)"
+                            print(f"[*] Initialized CUDA GPU Engine on: {self.device_name}")
+                    except Exception as e:
+                        print(f"[*] CUDA provider fallback: {e}")
+
+                # Automatic CPU Fallback if DirectML/CUDA GPU is unavailable or unsupported on host machine
                 if self.ort_session is None:
                     self.ort_session = ort.InferenceSession(
                         onnx_path,
