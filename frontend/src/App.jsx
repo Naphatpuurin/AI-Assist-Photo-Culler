@@ -225,11 +225,11 @@ function App() {
     });
   };
 
-  const handleManualCheckUpdate = async (forcePreview = false) => {
+  const handleManualCheckUpdate = async () => {
     setIsCheckingUpdate(true);
     setManualCheckMessage(null);
     try {
-      const url = `http://localhost:8000/api/updater/check${forcePreview ? '?force=true' : ''}`;
+      const url = 'http://localhost:8000/api/updater/check';
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
@@ -1964,20 +1964,10 @@ function App() {
                         type="button"
                         className="nr-btn mineral updater-check-btn"
                         disabled={isCheckingUpdate}
-                        onClick={() => handleManualCheckUpdate(false)}
+                        onClick={handleManualCheckUpdate}
                       >
                         <span>{isCheckingUpdate ? 'CHECKING GITHUB...' : 'CHECK FOR UPDATES NOW'}</span>
                         <span>[CHECK ⟳]</span>
-                      </button>
-                      <button
-                        type="button"
-                        className="nr-btn updater-preview-btn"
-                        disabled={isCheckingUpdate}
-                        onClick={() => handleManualCheckUpdate(true)}
-                        title="Simulate / Preview the Update Dialog and 3 buttons"
-                      >
-                        <span>PREVIEW UPDATE MODAL</span>
-                        <span>[DEMO]</span>
                       </button>
                     </div>
                   </div>
