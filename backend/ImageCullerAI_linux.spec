@@ -18,11 +18,22 @@ a = Analysis(
         ('app.png', '.'),
         ('app.ico', '.')
     ] + ort_datas + rawpy_datas,
-    hiddenimports=['onnxruntime', 'rawpy', 'exifread', 'raw_utils', 'pywebview', 'gi'],
+    hiddenimports=[
+        'onnxruntime',
+        'rawpy',
+        'exifread',
+        'raw_utils',
+        'pywebview',
+        'gi',
+        'gi.repository.WebKit2',
+        'gi.repository.Gtk',
+        'gi.repository.GLib',
+        'gi.repository.GObject'
+    ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['torch', 'torchvision', 'torchaudio', 'ultralytics', 'matplotlib', 'polars', 'scipy'],
+    excludes=['torch', 'torchvision', 'torchaudio', 'ultralytics', 'matplotlib', 'polars', 'scipy', 'pynvml'],
     noarchive=False,
     optimize=0,
 )
