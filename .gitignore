@@ -28,6 +28,11 @@ build/
 backend/build/
 release/*.exe
 release/*.msi
+release/*.dmg
+release/*.AppImage
+release/*.deb
+release/*.tar.gz
+release/linux/
 *.exe
 *.msi
 *.dll
