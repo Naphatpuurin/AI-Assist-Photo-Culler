@@ -57,27 +57,35 @@ This document serves as the architectural overview, critical system audit, opera
 
 ## 3. Engineering Roadmap
 
-### Phase 1: Security & Stability Hardening
-- [ ] **CSRF & Local Origin Protection**:
-  - Generate an authorization secret token on backend start.
-  - Inject the secret into frontend environment or window bridge.
-  - Validate token on all stateful/file-system backend endpoints.
-- [ ] **Cryptographic Update Verification**:
-  - Download and parse `SHA256SUMS.txt` during update checks.
-  - Validate downloaded asset hash before executing `subprocess.Popen` / `xdg-open`.
-- [ ] **Dynamic Port Selection**:
-  - Find an available local port dynamically and supply it to the WebView.
-- [ ] **Single Source of Truth Versioning**:
-  - Define `VERSION = "1.0.6"` in a single configuration file (`version.json` or `pyproject.toml`) and propagate automatically during build.
+### Phase 1: Security & Stability Hardening (Completed)
+- [x] **CSRF & Local Origin Protection**:
+  - Generated ephemeral workstation authorization session token (`X-App-Token`, query token, and `SameSite=Lax` cookie).
+  - Injected transient secret into frontend via `window.__APP_SESSION_TOKEN__` and `window.__API_PORT__`.
+  - Restricted CORS origins to exact localhost/127.0.0.1 ports instead of wildcard `*`.
+  - Enforced token validation middleware on all `/api/*` endpoints.
+- [x] **Cryptographic Update Verification**:
+  - Downloaded and parsed `SHA256SUMS.txt` during update stream.
+  - Streamed SHA-256 computation using `hashlib.sha256()` and verified matching hash before executing `subprocess.Popen` / `os.startfile`.
+  - Automatically discards invalid or tampered installer files before execution.
+- [x] **Dynamic Port Selection**:
+  - Implemented automatic port discovery (`find_free_port(8000)`) scanning available sockets to eliminate port conflicts.
+  - Supplied dynamic port to pywebview and frontend runtime.
+- [x] **Single Source of Truth Versioning**:
+  - Centralized application version and build in `version.json`.
+  - Created `scripts/sync_version.py` automating propagation across Inno Setup (`installer.iss`), WiX Toolset (`product.wxs`), Authenticode script (`sign_all.ps1`), and runtime backend.
+  - Frontend dynamically reads version from `/api/hardware_status`.
+- [x] **Trim Core Dependencies**:
+  - Cleaned `backend/requirements.txt` to remove unused heavy dependencies (PyTorch, Ultralytics) saving ~2GB disk and build overhead. Optional dev tools migrated to `backend/requirements-dev.txt`.
+- [x] **Core Logic & Security Test Suite**:
+  - Added unit test suite in `tests/test_core_logic.py` validating port scanning, version loading, HTML injection, and SHA-256 hash enforcement.
 
-### Phase 2: Performance & Build Streamlining
-- [ ] **Trim Requirements**: Remove unused PyTorch/Ultralytics from core `backend/requirements.txt`.
+### Phase 2: Performance & Architecture Streamlining
 - [ ] **Frontend Component Decomposition**:
   - Split `App.jsx` into `src/components/GalleryView.jsx`, `src/components/LoupeView.jsx`, `src/components/InspectorRail.jsx`, `src/components/SettingsModal.jsx`, and `src/components/UpdaterModal.jsx`.
 - [ ] **Directory-based Distribution Evaluation (`--onedir`)**:
   - Investigate directory builds to improve initial cold launch times compared to one-file extraction overhead.
-- [ ] **Automated Regression Test Suite**:
-  - Add pytest suite testing RAW decoding, EXIF parsing, and Laplacian variance consistency against fixed reference images.
+- [ ] **Catalog Analysis Cache**:
+  - Persist analysis results in a local SQLite database or `.cullcache` file so re-opening folders loads instantly without re-processing.
 
 ### Phase 3: High-Value Photographer Capabilities
 - [ ] **Burst Photo Grouping**:

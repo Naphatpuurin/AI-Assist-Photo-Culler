@@ -2,6 +2,43 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
 
+const API_BASE = (function() {
+  if (typeof window !== 'undefined') {
+    if (window.location.port === '5173') {
+      return 'http://127.0.0.1:8000';
+    }
+    if (window.__API_PORT__) {
+      return `http://127.0.0.1:${window.__API_PORT__}`;
+    }
+    return window.location.origin;
+  }
+  return 'http://127.0.0.1:8000';
+})();
+
+const getAppToken = () => {
+  if (typeof window !== 'undefined' && window.__APP_SESSION_TOKEN__) {
+    return window.__APP_SESSION_TOKEN__;
+  }
+  return '';
+};
+
+const apiFetch = async (endpoint, options = {}) => {
+  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE}${endpoint}`;
+  const token = getAppToken();
+  const headers = {
+    ...(options.headers || {}),
+    ...(token ? { 'X-App-Token': token } : {})
+  };
+  return fetch(url, { ...options, headers });
+};
+
+const getImageUrl = (endpoint, params = {}) => {
+  const token = getAppToken();
+  const searchParams = new URLSearchParams(params);
+  if (token) searchParams.set('token', token);
+  return `${API_BASE}${endpoint}?${searchParams.toString()}`;
+};
+
 function App() {
   const [theme, setTheme] = useState('dark');
   const [showAboutModal, setShowAboutModal] = useState(false);
@@ -64,6 +101,8 @@ function App() {
     gpu_util_percent: 0,
     vram_used_mb: 0,
     vram_total_mb: 8151,
+    app_version: '1.0.6',
+    app_build: 106,
     learning: {
       total_feedback_events: 0,
       focus_bias: 0,
@@ -106,7 +145,7 @@ function App() {
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     pollTimerRef.current = setInterval(async () => {
       try {
-        const res = await fetch('http://localhost:8000/api/updater/progress');
+        const res = await apiFetch('/api/updater/progress');
         if (res.ok) {
           const prog = await res.json();
           setUpdaterProgress(prog);
@@ -138,7 +177,7 @@ function App() {
         if (sessionStorage.getItem('micmose_remind_later') === 'true') {
           return;
         }
-        const res = await fetch('http://localhost:8000/api/updater/check');
+        const res = await apiFetch('/api/updater/check');
         if (res.ok) {
           const data = await res.json();
           if (data.status === 'success' && data.update_available) {
@@ -183,7 +222,7 @@ function App() {
     setUpdateState('downloading');
     setUpdateError('');
     try {
-      const res = await fetch('http://localhost:8000/api/updater/download_and_install', {
+      const res = await apiFetch('/api/updater/download_and_install', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +244,7 @@ function App() {
 
   const handleQuitApp = async () => {
     try {
-      await fetch('http://localhost:8000/api/updater/quit_app', { method: 'POST' });
+      await apiFetch('/api/updater/quit_app', { method: 'POST' });
     } catch {
       // ignore
     }
@@ -229,8 +268,7 @@ function App() {
     setIsCheckingUpdate(true);
     setManualCheckMessage(null);
     try {
-      const url = 'http://localhost:8000/api/updater/check';
-      const res = await fetch(url);
+      const res = await apiFetch('/api/updater/check');
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       if (data.status === 'success') {
@@ -270,7 +308,7 @@ function App() {
 
   const fetchHardwareStatus = useCallback(async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/hardware_status');
+      const res = await apiFetch('/api/hardware_status');
       if (res.ok) {
         const data = await res.json();
         setHwStatus(data);
@@ -336,7 +374,7 @@ function App() {
     const items = Object.values(rawMap);
     if (items.length === 0) return;
     try {
-      const response = await fetch('http://localhost:8000/api/post_process_batch', {
+      const response = await apiFetch('/api/post_process_batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -441,8 +479,7 @@ function App() {
       reject_closed_eyes: rejectClosedEyes
     });
     try {
-      const url = `http://localhost:8000/api/analyze?path=${encodeURIComponent(path)}&${params.toString()}`;
-      const response = await fetch(url);
+      const response = await apiFetch(`/api/analyze?path=${encodeURIComponent(path)}&${params.toString()}`);
       const data = await response.json();
       setAnalysisData(prev => ({ ...prev, [path]: data }));
       fetchHardwareStatus();
@@ -492,7 +529,7 @@ function App() {
     setStatusMessage(`LEARNING AI // RECORDED ${newRating}★ OVERRIDE FOR ${path.split('\\').pop()}`);
 
     try {
-      const res = await fetch('http://localhost:8000/api/learn_feedback', {
+      const res = await apiFetch('/api/learn_feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -610,7 +647,7 @@ function App() {
     setStatusMessage(`SCANNING // ${trimmed}`);
 
     try {
-      const response = await fetch('http://localhost:8000/api/scan_directory', {
+      const response = await apiFetch('/api/scan_directory', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ directory: trimmed })
@@ -640,7 +677,7 @@ function App() {
   const handleBrowseNativeFolder = async (forExport = false) => {
     try {
       setStatusMessage('OPENING WINDOWS FOLDER PICKER...');
-      const res = await fetch('http://localhost:8000/api/select_folder');
+      const res = await apiFetch('/api/select_folder');
       const data = await res.json();
       if (data.status === 'success' && data.directory) {
         if (forExport) {
@@ -675,7 +712,7 @@ function App() {
     for (let i = 0; i < images.length; i += chunkSize) {
       const chunkPaths = images.slice(i, i + chunkSize).map(img => img.path);
       try {
-        const response = await fetch('http://localhost:8000/api/analyze_batch', {
+        const response = await apiFetch('/api/analyze_batch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -770,7 +807,7 @@ function App() {
     setStatusMessage(`EXPORTING // WRITING ${items.length} PHOTOS + ACR/LIGHTROOM .XMP...`);
 
     try {
-      const response = await fetch('http://localhost:8000/api/export', {
+      const response = await apiFetch('/api/export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1318,7 +1355,7 @@ function App() {
                     </div>
                     <div className="cue-thumb-wrap">
                       <img
-                        src={`http://localhost:8000/api/thumbnail?path=${encodeURIComponent(img.path)}`}
+                        src={getImageUrl('/api/thumbnail', { path: img.path })}
                         alt={img.filename}
                         loading="lazy"
                       />
@@ -1398,7 +1435,7 @@ function App() {
 
                   <div className="loupe-img-wrapper">
                     <img
-                      src={`http://localhost:8000/api/image?path=${encodeURIComponent(activeImage.path)}`}
+                      src={getImageUrl('/api/image', { path: activeImage.path })}
                       alt={activeImage.filename}
                     />
                     {showSubjectBoxes && activeAnalysis?.subject_boxes?.map((b, i) => (
@@ -1908,7 +1945,7 @@ function App() {
                   <div className="settings-updater-card">
                     <div className="hw-row">
                       <span className="hw-k">INSTALLED BUILD</span>
-                      <span className="hw-v highlight">VERSION 1.0.6 // BUILD 106</span>
+                      <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'}</span>
                     </div>
                     <div className="hw-row">
                       <span className="hw-k">RELEASE CHANNEL</span>
@@ -1982,7 +2019,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
-                    <div className="about-version">VERSION 1.0.6 // BUILD 106 // PRODUCTION STUDIO RELEASE</div>
+                    <div className="about-version">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'} // PRODUCTION STUDIO RELEASE</div>
                     <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a

@@ -1,17 +1,15 @@
-# Core Web Framework & Server
+# Core Web Framework & Desktop Application Server
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0
 pydantic>=2.6.0
+pywebview>=5.0.0
 
 # Computer Vision & High-Performance Matrix Operations
 opencv-python>=4.9.0
 numpy>=1.26.0
 
-# Machine Learning & Subject Detection
-ultralytics>=8.1.0
+# Machine Learning & Neural Inference (DirectML on Windows, CUDA on Linux)
 onnxruntime>=1.17.0
-torch>=2.2.0
-torchvision>=0.17.0
 
 # Camera RAW Decoding & EXIF Telemetry
 rawpy>=0.21.0

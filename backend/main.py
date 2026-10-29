@@ -1,6 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse, Response, JSONResponse
 from pydantic import BaseModel
 import os
 import sys
@@ -12,6 +12,9 @@ import tempfile
 import subprocess
 import threading
 import time
+import socket
+import secrets
+import hashlib
 import urllib.request
 import urllib.error
 
@@ -23,6 +26,40 @@ import cv2
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
+
+# ----------------------------------------------------
+# Dynamic Port Discovery & Session Authorization Token
+# ----------------------------------------------------
+def find_free_port(start_port=8000, max_attempts=50):
+    for p in range(start_port, start_port + max_attempts):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            try:
+                s.bind(('127.0.0.1', p))
+                return p
+            except OSError:
+                continue
+    return start_port
+
+CURRENT_PORT = find_free_port(8000)
+APP_SESSION_TOKEN = secrets.token_urlsafe(32)
+
+def load_app_version():
+    candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "version.json"),
+        os.path.join(os.path.dirname(__file__), "version.json"),
+        os.path.join(getattr(sys, "_MEIPASS", "."), "version.json")
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                with open(c, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data.get("version", "1.0.6"), data.get("build", 106)
+            except Exception:
+                pass
+    return "1.0.6", 106
+
+APP_VERSION, APP_BUILD = load_app_version()
 
 def sanitize_for_json(obj):
     if isinstance(obj, dict):
@@ -41,13 +78,48 @@ def sanitize_for_json(obj):
 
 app = FastAPI(title="MicMose Photo Culler Pro")
 
+# Restrict CORS to exact local origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        f"http://127.0.0.1:{CURRENT_PORT}",
+        f"http://localhost:{CURRENT_PORT}",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "null"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Protect all /api/ endpoints with local transient session token
+@app.middleware("http")
+async def security_token_middleware(request: Request, call_next):
+    if request.url.path.startswith("/api/"):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+
+        token = (
+            request.headers.get("X-App-Token") or
+            request.query_params.get("token") or
+            request.cookies.get("app_token")
+        )
+
+        origin = request.headers.get("origin", "")
+        referer = request.headers.get("referer", "")
+        is_dev = ":5173" in origin or ":5173" in referer
+
+        if APP_SESSION_TOKEN and token != APP_SESSION_TOKEN and not is_dev:
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "status": "error",
+                    "message": "Access denied: Request missing valid local workstation authorization token."
+                }
+            )
+
+    return await call_next(request)
 
 webview_window = None
 
@@ -166,7 +238,11 @@ def hardware_status():
     try:
         from ai_engine import get_engine
         engine = get_engine()
-        return engine.get_hardware_telemetry()
+        telemetry = engine.get_hardware_telemetry()
+        telemetry["app_version"] = APP_VERSION
+        telemetry["app_build"] = APP_BUILD
+        telemetry["app_port"] = CURRENT_PORT
+        return telemetry
     except Exception as e:
         return {
             "device_name": f"CPU Fallback ({os.cpu_count() or 8} Threads)",
@@ -176,6 +252,9 @@ def hardware_status():
             "gpu_util_percent": 0,
             "vram_used_mb": 0,
             "vram_total_mb": 0,
+            "app_version": APP_VERSION,
+            "app_build": APP_BUILD,
+            "app_port": CURRENT_PORT,
             "error": str(e)
         }
 
@@ -514,8 +593,6 @@ def export_files(request: ExportRequest):
 # ----------------------------------------------------
 # Auto-Updater System (GitHub Releases Integration)
 # ----------------------------------------------------
-APP_VERSION = "1.0.6"
-APP_BUILD = 106
 GITHUB_REPO = "Naphatpuurin/AI-Assist-Photo-Culler"
 GITHUB_LATEST_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -657,19 +734,54 @@ def get_updater_progress():
 def _run_download_and_install(download_url: str, asset_name: str):
     global updater_state
     try:
-        if not download_url or not asset_name:
-            req = urllib.request.Request(
-                GITHUB_LATEST_API,
-                headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
-            )
-            ctx = ssl.create_default_context()
+        # Fetch release metadata to resolve assets and cryptographic manifest
+        req = urllib.request.Request(
+            GITHUB_LATEST_API,
+            headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
+        )
+        ctx = ssl.create_default_context()
+        release_data = {}
+        try:
             with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-            matched = match_platform_asset(data.get("assets", []))
+                release_data = json.loads(resp.read().decode("utf-8"))
+        except Exception:
+            pass
+
+        assets = release_data.get("assets", [])
+        if not download_url or not asset_name:
+            matched = match_platform_asset(assets)
             if not matched:
                 raise RuntimeError("No suitable installation package found in release assets.")
             download_url = matched.get("browser_download_url", "")
             asset_name = matched.get("name", "update_installer")
+
+        # -------------------------------------------------------------------
+        # Security: Fetch SHA256SUMS.txt to enforce cryptographic verification
+        # -------------------------------------------------------------------
+        expected_sha256 = None
+        sha_asset = None
+        for a in assets:
+            if a.get("name", "").lower() in ["sha256sums.txt", "checksums.txt", "sha256.txt"]:
+                sha_asset = a
+                break
+
+        if sha_asset and sha_asset.get("browser_download_url"):
+            try:
+                sha_req = urllib.request.Request(
+                    sha_asset["browser_download_url"],
+                    headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
+                )
+                with urllib.request.urlopen(sha_req, context=ctx, timeout=10) as s_resp:
+                    sha_content = s_resp.read().decode("utf-8", errors="ignore")
+                    for line in sha_content.splitlines():
+                        parts = line.strip().split()
+                        if len(parts) >= 2:
+                            h, fname = parts[0], parts[1].lstrip("*")
+                            if fname.lower() == asset_name.lower():
+                                expected_sha256 = h.lower().strip()
+                                break
+            except Exception as e:
+                print(f"Warning: Failed to fetch/parse SHA256SUMS.txt: {e}")
 
         temp_dir = os.path.join(tempfile.gettempdir(), "MicMoseUpdate")
         os.makedirs(temp_dir, exist_ok=True)
@@ -690,11 +802,12 @@ def _run_download_and_install(download_url: str, asset_name: str):
             download_url,
             headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
         )
-        ctx = ssl.create_default_context()
 
         start_time = time.time()
         last_calc_time = start_time
         last_calc_bytes = 0
+
+        hasher = hashlib.sha256()
 
         with urllib.request.urlopen(req, context=ctx, timeout=30) as resp, open(dest_file, "wb") as out_f:
             total_bytes = int(resp.headers.get("Content-Length", 0))
@@ -708,6 +821,7 @@ def _run_download_and_install(download_url: str, asset_name: str):
                 if not chunk:
                     break
                 out_f.write(chunk)
+                hasher.update(chunk)
                 downloaded += len(chunk)
 
                 now = time.time()
@@ -724,6 +838,22 @@ def _run_download_and_install(download_url: str, asset_name: str):
                     updater_state["speed_mbps"] = round(speed, 2)
                     if total_bytes > 0:
                         updater_state["progress"] = round((downloaded / total_bytes) * 100, 1)
+
+        # -------------------------------------------------------------------
+        # Validate Cryptographic Hash
+        # -------------------------------------------------------------------
+        computed_sha256 = hasher.hexdigest().lower()
+        if expected_sha256:
+            if computed_sha256 != expected_sha256:
+                try:
+                    if os.path.exists(dest_file):
+                        os.remove(dest_file)
+                except Exception:
+                    pass
+                raise ValueError(
+                    f"Cryptographic verification failed! Expected SHA-256 {expected_sha256}, "
+                    f"but downloaded file hash was {computed_sha256}. Installer discarded for security."
+                )
 
         # Download complete
         with updater_lock:
@@ -800,15 +930,49 @@ else:
     base_path = os.path.dirname(os.path.abspath(__file__))
     frontend_dist = os.path.abspath(os.path.join(base_path, '..', 'frontend', 'dist'))
 
-if os.path.exists(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="static")
-else:
-    print(f"Warning: Frontend dist folder not found at {frontend_dist}")
+@app.get("/")
+@app.get("/index.html")
+async def serve_index():
+    index_file = os.path.join(frontend_dist, "index.html")
+    if os.path.exists(index_file):
+        with open(index_file, "r", encoding="utf-8") as f:
+            html = f.read()
+        injection = (
+            f"<script>\n"
+            f"  window.__APP_SESSION_TOKEN__ = '{APP_SESSION_TOKEN}';\n"
+            f"  window.__API_PORT__ = {CURRENT_PORT};\n"
+            f"</script>\n"
+        )
+        if "<head>" in html:
+            html = html.replace("<head>", f"<head>\n{injection}", 1)
+        else:
+            html = f"{injection}{html}"
+        resp = Response(content=html, media_type="text/html")
+        resp.set_cookie(
+            key="app_token",
+            value=APP_SESSION_TOKEN,
+            httponly=False,
+            samesite="lax",
+            path="/"
+        )
+        return resp
+    return JSONResponse(status_code=404, content={"message": "Frontend distribution not found"})
+
+assets_dir = os.path.join(frontend_dist, "assets")
+if os.path.exists(assets_dir):
+    app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+
+@app.get("/{file_name}")
+async def serve_static_root(file_name: str):
+    file_path = os.path.join(frontend_dist, file_name)
+    if os.path.isfile(file_path):
+        return FileResponse(file_path)
+    raise HTTPException(status_code=404, detail="File not found")
 
 
 def run_server():
     import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=CURRENT_PORT)
 
 
 if __name__ == "__main__":
@@ -824,7 +988,7 @@ if __name__ == "__main__":
 
     webview_window = webview.create_window(
         'MicMose Photo Culler Pro',
-        'http://127.0.0.1:8000',
+        f'http://127.0.0.1:{CURRENT_PORT}',
         width=1440,
         height=890
     )

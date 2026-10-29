@@ -1,0 +1,12 @@
+# Development, Testing, and Model Exporting
+-r requirements.txt
+
+# Model export & PyTorch weights inspection
+ultralytics>=8.1.0
+torch>=2.2.0
+torchvision>=0.17.0
+
+# Testing & Quality Assurance
+pytest>=8.0.0
+pytest-asyncio>=0.23.0
+httpx>=0.27.0
