@@ -1996,7 +1996,7 @@ function App() {
                   <div className="settings-updater-card">
                     <div className="hw-row">
                       <span className="hw-k">INSTALLED BUILD</span>
-                      <span className="hw-v highlight">VERSION 1.0.3 // BUILD 103</span>
+                      <span className="hw-v highlight">VERSION 1.0.4 // BUILD 104</span>
                     </div>
                     <div className="hw-row">
                       <span className="hw-k">RELEASE CHANNEL</span>
@@ -2089,7 +2089,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
-                    <div className="about-version">VERSION 1.0.3 // BUILD 103 // PRODUCTION STUDIO RELEASE</div>
+                    <div className="about-version">VERSION 1.0.4 // BUILD 104 // PRODUCTION STUDIO RELEASE</div>
                     <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a
@@ -2490,7 +2490,7 @@ function App() {
                   <span className="splash-brand-name">MicMose Creative Studio</span>
                 </div>
                 <div className="splash-dismiss-hint">
-                  {splashProgress >= 100 ? '[CLICK TO CONTINUE]' : 'v1.0.3 // BUILD 103'}
+                  {splashProgress >= 100 ? '[CLICK TO CONTINUE]' : 'v1.0.4 // BUILD 104'}
                 </div>
               </div>
             </div>

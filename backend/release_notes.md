@@ -1,4 +1,4 @@
-# MicMose Photo Culler Pro v1.0.3 (Build 103) — Automatic In-App Updates & Production Release
+# MicMose Photo Culler Pro v1.0.4 (Build 104) — Studio Splash Loading Screen & In-App Updates
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
@@ -13,16 +13,20 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ---
 
-### ⚡ What's New in v1.0.3 (Build 103)
+### ⚡ What's New in v1.0.4 (Build 104)
 
-- **🔄 Built-In Auto-Updater with 3-Option Modal**: Automatic background update checking on launch, featuring:
-  - **1. Skip updates**: Persists skipped version to `localStorage` so you won't be prompted again for that specific release.
-  - **2. Remind me later**: Snoozes notification for the active session and checks again on next launch.
-  - **3. Update**: Downloads the platform installer directly from GitHub Releases with live download progress, transfer speed (MB/s), and automatic setup launcher.
-- **🎛️ Dedicated Updates Section in Settings**: Added **`04 // SOFTWARE UPDATES & RELEASE CHANNEL`** in Studio Settings for on-demand update checks and skipped release reset.
-- **🍏 Automated macOS DMG Build Pipeline**: Native Apple Silicon & Intel build verified via GitHub Actions.
-- **🔏 Authenticode Code Signing**: Digitally signed all Windows release packages with SHA-256 and RFC 3161 DigiCert timestamping.
-- **🎨 Warm Chalk Mode (`#F4F3EE`)**: Calibrated daylight Chalk mode across all panels to warm non-glare paper tone.
+- **🎴 750 × 500 Studio Splash Loading Screen**:
+  - Exact 750 × 500 px native proportions with responsive dynamic scaling to any display size or DPI scaling.
+  - Styled after professional photography workstations (Lightroom Classic aesthetic) with dual-column layout.
+  - Live animated boot telemetry (DirectML, OpenCL GPU matrix, neural focus detectors, ACR 16.0 engine calibration).
+  - High-resolution featured cover artwork (*"Ethereal Woodland"* by Naphatphurin Prachantasena).
+  - Quick dismiss (<kbd>Esc</kbd> / <kbd>Space</kbd> / Click) and on-demand inspection from Studio Settings & About modal.
+- **🔄 Built-In Auto-Updater System**:
+  - Automatic background update checks on launch with 3-button cue-sheet modal: **1. Skip updates**, **2. Remind me later**, and **3. Update**.
+  - Direct package pulling with real-time transfer progress and speed telemetry.
+- **🔏 Authenticode Code Signing**: Digitally signed all Windows binaries with SHA-256 and RFC 3161 DigiCert timestamping.
+- **🍏 Native macOS Apple Silicon & Intel DMG**: Automated macOS packaging pipeline via GitHub Actions runners.
+- **🎨 Calibrated Chalk Mode (`#F4F3EE`) & Obsidian Dark Studio Theme**: Pure high-precision color fidelity for studio darkrooms and location laptop inspections.
 
 ---
 
