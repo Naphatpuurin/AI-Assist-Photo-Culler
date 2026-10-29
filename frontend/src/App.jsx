@@ -861,7 +861,7 @@ function App() {
             className="theme-toggle-btn"
             onClick={() => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))}
           >
-            {theme === 'dark' ? '☀ CHALK' : '☾ DARK'}
+            {theme === 'dark' ? '☀ WHITE CHALK' : '☾ DARK'}
           </button>
         </div>
       </header>
@@ -1871,7 +1871,7 @@ function App() {
                       className={`theme-option-card ${theme === 'light' ? 'active-card' : ''}`}
                       onClick={() => setTheme('light')}
                     >
-                      <span className="theme-option-name">☀ CHALK EDITORIAL (#F4F3EE)</span>
+                      <span className="theme-option-name">☀ WHITE CHALK</span>
                       <span className="theme-option-desc">Warm chalk paper background calibrated for location laptop inspections.</span>
                     </button>
                   </div>
