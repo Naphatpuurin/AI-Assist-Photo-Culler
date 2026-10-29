@@ -2143,3 +2143,384 @@
   background: #f7f6f1 !important;
   border-color: #d8d6cc !important;
 }
+
+/* ------------------------------------------------------------------
+   STUDIO SPLASH / LOADING MENU (750x500 DYNAMIC SCALING)
+   ------------------------------------------------------------------ */
+
+.splash-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(10, 12, 9, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  opacity: 1;
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+}
+
+.splash-backdrop.fading-out {
+  opacity: 0;
+  transform: scale(0.98);
+  pointer-events: none;
+}
+
+.splash-card {
+  width: min(750px, 94vw, calc(90vh * (750 / 500)));
+  max-width: 750px;
+  aspect-ratio: 750 / 500;
+  max-height: min(500px, 90vh);
+  height: auto;
+  background: #141712;
+  border: 1px solid #384232;
+  border-radius: 20px;
+  box-shadow: 0 32px 100px rgba(0, 0, 0, 0.92), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  container-type: inline-size;
+  container-name: splash;
+}
+
+/* Left Column - Branding, Status & Credits */
+.splash-left {
+  padding: clamp(16px, 3.8cqi, 26px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  background: #151813;
+  border-right: 1px solid #283023;
+  overflow: hidden;
+}
+
+.splash-header-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.splash-app-badge {
+  width: clamp(38px, 6cqi, 46px);
+  height: clamp(38px, 6cqi, 46px);
+  border-radius: 11px;
+  background: #0f1615;
+  border: 1.5px solid #275D63;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(39, 93, 99, 0.35);
+}
+
+.splash-badge-text {
+  font-family: var(--font-mono);
+  font-size: clamp(14px, 2.3cqi, 17px);
+  font-weight: 900;
+  color: #5ce1e6;
+  letter-spacing: -0.04em;
+}
+
+.splash-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.splash-title {
+  font-family: var(--font-sans);
+  font-size: clamp(15px, 2.5cqi, 18.5px);
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.splash-subtitle {
+  font-family: var(--font-mono);
+  font-size: clamp(8.5px, 1.3cqi, 10px);
+  font-weight: 700;
+  color: #8c9284;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* Middle Content: Copyright, Attributions & Live Status */
+.splash-meta-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: clamp(9px, 1.4cqi, 10.5px);
+  color: #9da395;
+  line-height: 1.4;
+}
+
+.splash-copy {
+  color: #818779;
+}
+
+.splash-artwork-attribution {
+  color: #a4aba0;
+  font-size: clamp(8.5px, 1.3cqi, 10px);
+}
+
+.splash-artwork-attribution strong {
+  color: #e4e6e0;
+}
+
+.splash-status-area {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.splash-status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.splash-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #5ce1e6;
+  box-shadow: 0 0 8px #5ce1e6;
+  animation: splashPulse 1.2s infinite ease-in-out;
+  flex-shrink: 0;
+}
+
+@keyframes splashPulse {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0.6; }
+}
+
+.splash-status-text {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.4cqi, 11px);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.splash-progress-track {
+  width: 100%;
+  height: 3px;
+  background: #23291e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.splash-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, #275D63 0%, #389ba6 60%, #5ce1e6 100%);
+  border-radius: 2px;
+  transition: width 0.15s ease-out;
+  box-shadow: 0 0 8px rgba(92, 225, 230, 0.6);
+}
+
+/* Credits Block (Matching Lightroom Classic's credit names layout) */
+.splash-credits-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-family: var(--font-sans);
+  font-size: clamp(8px, 1.25cqi, 9.5px);
+  color: #7b8274;
+  line-height: 1.35;
+  border-top: 1px solid #22271d;
+  padding-top: 8px;
+}
+
+.splash-credits-line {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.splash-credits-line span {
+  color: #9ea597;
+  font-weight: 600;
+}
+
+/* Bottom Brand Bar */
+.splash-bottom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #22271d;
+  padding-top: 8px;
+}
+
+.splash-studio-brand {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.splash-brand-logo {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.splash-brand-name {
+  font-family: var(--font-mono);
+  font-size: clamp(9px, 1.35cqi, 10.5px);
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #d8ded2;
+  text-transform: uppercase;
+}
+
+.splash-dismiss-hint {
+  font-family: var(--font-mono);
+  font-size: clamp(8px, 1.2cqi, 9.5px);
+  color: #636b5c;
+  letter-spacing: 0.04em;
+}
+
+/* Right Column - Featured Photograph */
+.splash-right {
+  padding: clamp(10px, 2cqi, 14px);
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  background: #11130f;
+}
+
+.splash-photo-wrap {
+  width: 100%;
+  height: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.splash-photo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 3s ease;
+}
+
+.splash-card:hover .splash-photo-img {
+  transform: scale(1.02);
+}
+
+.splash-photo-overlay {
+  position: absolute;
+  inset: 0;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.splash-telemetry-pill {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(14, 16, 12, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: clamp(8px, 1.2cqi, 9.5px);
+  font-weight: 700;
+  color: #e4e7df;
+  letter-spacing: 0.04em;
+}
+
+/* Close ESC button for on-demand inspection mode */
+.splash-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(20, 24, 18, 0.82);
+  border: 1px solid #485240;
+  color: #d1d6c9;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 4px;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.15s ease;
+}
+
+.splash-close-btn:hover {
+  background: var(--signal-vermilion);
+  color: #ffffff;
+  border-color: #ff6b55;
+}
+
+/* Light / Chalk Mode Splash Variation */
+[data-theme='light'] .splash-card {
+  background: #f7f6f1 !important;
+  border-color: #d8d6cc !important;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+}
+
+[data-theme='light'] .splash-left {
+  background: #f7f6f1 !important;
+  border-right-color: #e2e0d6 !important;
+}
+
+[data-theme='light'] .splash-title {
+  color: #1a1e16 !important;
+}
+
+[data-theme='light'] .splash-subtitle {
+  color: #636b5c !important;
+}
+
+[data-theme='light'] .splash-meta-block {
+  color: #495043 !important;
+}
+
+[data-theme='light'] .splash-status-text {
+  color: #1a1e16 !important;
+}
+
+[data-theme='light'] .splash-progress-track {
+  background: #e2e0d6 !important;
+}
+
+[data-theme='light'] .splash-credits-block {
+  border-top-color: #e2e0d6 !important;
+  color: #636b5c !important;
+}
+
+[data-theme='light'] .splash-credits-line span {
+  color: #2b3325 !important;
+}
+
+[data-theme='light'] .splash-bottom-row {
+  border-top-color: #e2e0d6 !important;
+}
+
+[data-theme='light'] .splash-brand-name {
+  color: #1a1e16 !important;
+}
+
+[data-theme='light'] .splash-right {
+  background: #ebeae4 !important;
+}
