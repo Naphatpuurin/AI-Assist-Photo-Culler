@@ -1,25 +1,28 @@
-# MicMose Photo Culler Pro v1.0.2 (Build 102) — Dual Windows & macOS Production Release
+# MicMose Photo Culler Pro v1.0.3 (Build 103) — Automatic In-App Updates & Production Release
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
 ### 📦 Available Release Packages
 
-- **`MicMose-Photo-Culler-Pro-macOS.dmg`** (127.3 MB) — Native Apple Silicon (M1/M2/M3/M4) & Intel macOS disk image installer.
-- **`MicMose Photo Culler Pro.exe`** (127.4 MB) — Portable standalone Windows application. Run directly anywhere without installation.
-- **`MicMose-Photo-Culler-Pro-Setup.exe`** (128.8 MB) — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
-- **`MicMose-Photo-Culler-Pro.msi`** (126.8 MB) — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
+- **`MicMose-Photo-Culler-Pro-macOS.dmg`** — Native Apple Silicon (M1/M2/M3/M4) & Intel macOS disk image installer.
+- **`MicMose Photo Culler Pro.exe`** — Portable standalone Windows application. Run directly anywhere without installation.
+- **`MicMose-Photo-Culler-Pro-Setup.exe`** — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
+- **`MicMose-Photo-Culler-Pro.msi`** — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
 - **`MicMoseStudio.cer`** — Official Studio Authenticode public certificate for publisher verification.
 - **`SHA256SUMS.txt`** — SHA-256 cryptographic checksums for release verification.
 
 ---
 
-### ⚡ What's New in v1.0.2 (Build 102)
+### ⚡ What's New in v1.0.3 (Build 103)
 
-- **🍏 Official macOS Release (`.dmg`)**: First native macOS release with Apple Silicon M-series & Intel support, packaged as an interactive `.dmg` disk image with retina icon integration.
-- **🎨 Calibrated Chalk Palette (`#F4F3EE`)**: Calibrated daylight Chalk mode across all panels to warm non-glare `#F4F3EE` paper tone.
-- **📷 Harmonized Studio Aperture Emblem**: Seamlessly re-themed the studio mark into exact theme colors (Mineral Blue `#275D63`, Signal Vermilion `#E54C35`, Chalk `#F4F3EE`, Obsidian `#11120F`) with clean transparency.
-- **🎛️ Far-Left Settings Button**: Dedicated **`[ ⚙ SETTINGS ]`** button placed on the far left edge of the identity bar for quick access to theme switching, live GPU telemetry, and keyboard shortcuts.
+- **🔄 Built-In Auto-Updater with 3-Option Modal**: Automatic background update checking on launch, featuring:
+  - **1. Skip updates**: Persists skipped version to `localStorage` so you won't be prompted again for that specific release.
+  - **2. Remind me later**: Snoozes notification for the active session and checks again on next launch.
+  - **3. Update**: Downloads the platform installer directly from GitHub Releases with live download progress, transfer speed (MB/s), and automatic setup launcher.
+- **🎛️ Dedicated Updates Section in Settings**: Added **`04 // SOFTWARE UPDATES & RELEASE CHANNEL`** in Studio Settings for on-demand update checks and skipped release reset.
+- **🍏 Automated macOS DMG Build Pipeline**: Native Apple Silicon & Intel build verified via GitHub Actions.
 - **🔏 Authenticode Code Signing**: Digitally signed all Windows release packages with SHA-256 and RFC 3161 DigiCert timestamping.
+- **🎨 Warm Chalk Mode (`#F4F3EE`)**: Calibrated daylight Chalk mode across all panels to warm non-glare paper tone.
 
 ---
 
@@ -34,4 +37,4 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
   - OpenCV OpenCL UMat matrix pipeline on NVIDIA RTX GPUs.
   - ONNX Runtime DirectML for neural subject detection.
   - Transparent multi-core CPU thread-pool fallback.
-- **🔒 100% Offline & Private**: Zero external network calls. All processing runs locally on your device.
+- **🔒 100% Offline & Private**: Zero external telemetry. All photo analysis runs 100% locally on your machine.

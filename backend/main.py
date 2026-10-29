@@ -514,8 +514,8 @@ def export_files(request: ExportRequest):
 # ----------------------------------------------------
 # Auto-Updater System (GitHub Releases Integration)
 # ----------------------------------------------------
-APP_VERSION = "1.0.2"
-APP_BUILD = 102
+APP_VERSION = "1.0.3"
+APP_BUILD = 103
 GITHUB_REPO = "Naphatpuurin/AI-Assist-Photo-Culler"
 GITHUB_LATEST_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
