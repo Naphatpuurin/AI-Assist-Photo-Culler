@@ -1,4 +1,4 @@
-# MicMose Photo Culler Pro v1.0.5 (Build 105) — Instant Launch & In-App Auto-Updates
+# MicMose Photo Culler Pro v1.0.6 (Build 106) — Minimalist Workspace & White Chalk Theme
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
@@ -13,17 +13,19 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ---
 
-### ⚡ What's New in v1.0.5 (Build 105)
+### ⚡ What's New in v1.0.6 (Build 106)
 
-- **⚡ Instant Studio Workspace Launch**:
-  - Removed startup splash screen and delay; workstation opens directly to the culling grid immediately.
-  - Streamlined UI and bundle size.
-- **🔄 Built-In Auto-Updater System**:
-  - Automatic background update checks on launch with 3-button cue-sheet modal: **1. Skip updates**, **2. Remind me later**, and **3. Update**.
-  - Direct release package pulling from GitHub Releases with real-time transfer progress and speed telemetry.
+- **🎨 White Chalk Theme Polish**:
+  - Refined theme label to **White Chalk** (`☀ WHITE CHALK`) across both the top bar quick toggle and Settings options grid.
+  - Paired cleanly with **Dark Graphite** (`☾ DARK GRAPHITE`).
+- **📐 Minimalist Identity Header Layout**:
+  - Removed repetitive application title, logo, and tagline next to the native window title bar.
+  - Dedicated, centered **`⚙ SETTINGS`** button provides clean, distraction-free access to studio parameters.
+- **🔄 Streamlined In-App Software Updates**:
+  - Removed development demo preview button; Software Updates section now cleanly provides direct 1-click GitHub check and auto-pulling.
+  - 3-button cue-sheet modal: **1. Skip updates**, **2. Remind me later**, and **3. Update**.
 - **🔏 Authenticode Code Signing**: Digitally signed all Windows binaries with SHA-256 and RFC 3161 DigiCert timestamping.
 - **🍏 Native macOS Apple Silicon & Intel DMG**: Automated macOS packaging pipeline via GitHub Actions runners.
-- **🎨 Calibrated Chalk Mode (`#F4F3EE`) & Obsidian Dark Studio Theme (`#11120F`)**: Pure high-precision color fidelity for studio darkrooms and location laptop inspections.
 
 ---
 
