@@ -1,4 +1,4 @@
-# MicMose Photo Culler Pro v1.0.4 (Build 104) — Studio Splash Loading Screen & In-App Updates
+# MicMose Photo Culler Pro v1.0.5 (Build 105) — Instant Launch & In-App Auto-Updates
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
@@ -13,20 +13,17 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ---
 
-### ⚡ What's New in v1.0.4 (Build 104)
+### ⚡ What's New in v1.0.5 (Build 105)
 
-- **🎴 750 × 500 Studio Splash Loading Screen**:
-  - Exact 750 × 500 px native proportions with responsive dynamic scaling to any display size or DPI scaling.
-  - Styled after professional photography workstations (Lightroom Classic aesthetic) with dual-column layout.
-  - Live animated boot telemetry (DirectML, OpenCL GPU matrix, neural focus detectors, ACR 16.0 engine calibration).
-  - High-resolution featured cover artwork (*"Ethereal Woodland"* by Naphatphurin Prachantasena).
-  - Quick dismiss (<kbd>Esc</kbd> / <kbd>Space</kbd> / Click) and on-demand inspection from Studio Settings & About modal.
+- **⚡ Instant Studio Workspace Launch**:
+  - Removed startup splash screen and delay; workstation opens directly to the culling grid immediately.
+  - Streamlined UI and bundle size.
 - **🔄 Built-In Auto-Updater System**:
   - Automatic background update checks on launch with 3-button cue-sheet modal: **1. Skip updates**, **2. Remind me later**, and **3. Update**.
-  - Direct package pulling with real-time transfer progress and speed telemetry.
+  - Direct release package pulling from GitHub Releases with real-time transfer progress and speed telemetry.
 - **🔏 Authenticode Code Signing**: Digitally signed all Windows binaries with SHA-256 and RFC 3161 DigiCert timestamping.
 - **🍏 Native macOS Apple Silicon & Intel DMG**: Automated macOS packaging pipeline via GitHub Actions runners.
-- **🎨 Calibrated Chalk Mode (`#F4F3EE`) & Obsidian Dark Studio Theme**: Pure high-precision color fidelity for studio darkrooms and location laptop inspections.
+- **🎨 Calibrated Chalk Mode (`#F4F3EE`) & Obsidian Dark Studio Theme (`#11120F`)**: Pure high-precision color fidelity for studio darkrooms and location laptop inspections.
 
 ---
 

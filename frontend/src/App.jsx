@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
-import splashCover from './assets/splash_cover.jpg'
 
 function App() {
   const [theme, setTheme] = useState('dark');
@@ -77,67 +76,6 @@ function App() {
   const [dialogMode, setDialogMode] = useState(null); // null | 'open' | 'export'
   const [pathInput, setPathInput] = useState('');
   const [statusMessage, setStatusMessage] = useState('STANDBY // LOAD FOLDER FOR PARALLEL GPU CULLING');
-
-  // ---------------- Studio Splash / Loading Menu (750x500 Dynamic Scaling) ----------------
-  const [showSplash, setShowSplash] = useState(true);
-  const [splashProgress, setSplashProgress] = useState(0);
-  const [splashStatusText, setSplashStatusText] = useState('Initializing Studio Workstation...');
-  const [splashFading, setSplashFading] = useState(false);
-  const [isSplashManualPreview, setIsSplashManualPreview] = useState(false);
-
-  useEffect(() => {
-    let current = 0;
-    const steps = [
-      { pct: 15, text: 'Initializing Neural Engine & DirectML...' },
-      { pct: 35, text: 'Probing OpenCL GPU Matrix Acceleration...' },
-      { pct: 55, text: 'Loading Face & Eye Focus Detectors...' },
-      { pct: 75, text: 'Calibrating 1–10 Laplacian Sharpness Scale...' },
-      { pct: 90, text: 'Connecting Adobe ACR 16.0 XMP Engine...' },
-      { pct: 100, text: 'Studio Workstation Ready.' }
-    ];
-
-    const interval = setInterval(() => {
-      current += 4;
-      if (current > 100) current = 100;
-      setSplashProgress(current);
-
-      for (let i = steps.length - 1; i >= 0; i--) {
-        if (current >= steps[i].pct) {
-          setSplashStatusText(steps[i].text);
-          break;
-        }
-      }
-
-      if (current >= 100) {
-        clearInterval(interval);
-        setTimeout(() => {
-          setSplashFading(true);
-          setTimeout(() => {
-            setShowSplash(false);
-            setSplashFading(false);
-          }, 450);
-        }, 350);
-      }
-    }, 45);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  const dismissSplash = () => {
-    setSplashFading(true);
-    setTimeout(() => {
-      setShowSplash(false);
-      setSplashFading(false);
-      setIsSplashManualPreview(false);
-    }, 250);
-  };
-
-  const openSplashPreview = () => {
-    setSplashProgress(100);
-    setSplashStatusText('Studio Workstation Ready.');
-    setIsSplashManualPreview(true);
-    setShowSplash(true);
-  };
 
   // ---------------- Auto-Updater & 3-Button Update Dialog ----------------
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -609,12 +547,6 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (showSplash) {
-        if (e.key === 'Escape' || e.key === ' ' || e.key === 'Enter') {
-          dismissSplash();
-          return;
-        }
-      }
       if (showUpdateModal) {
         if (e.key === 'Escape' && updateState !== 'downloading') setShowUpdateModal(false);
         return;
@@ -660,7 +592,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showSplash, dismissSplash, showUpdateModal, updateState, showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
+  }, [showUpdateModal, updateState, showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
 
   const loadDirectoryFromPath = async (dirPath) => {
     const trimmed = dirPath.trim();
@@ -1996,7 +1928,7 @@ function App() {
                   <div className="settings-updater-card">
                     <div className="hw-row">
                       <span className="hw-k">INSTALLED BUILD</span>
-                      <span className="hw-v highlight">VERSION 1.0.4 // BUILD 104</span>
+                      <span className="hw-v highlight">VERSION 1.0.5 // BUILD 105</span>
                     </div>
                     <div className="hw-row">
                       <span className="hw-k">RELEASE CHANNEL</span>
@@ -2047,15 +1979,6 @@ function App() {
                         <span>PREVIEW UPDATE MODAL</span>
                         <span>[DEMO]</span>
                       </button>
-                      <button
-                        type="button"
-                        className="nr-btn"
-                        onClick={openSplashPreview}
-                        title="View the 750x500 Studio Splash Loading Screen"
-                      >
-                        <span>SPLASH SCREEN</span>
-                        <span>[SPLASH 🎴]</span>
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -2089,7 +2012,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
-                    <div className="about-version">VERSION 1.0.4 // BUILD 104 // PRODUCTION STUDIO RELEASE</div>
+                    <div className="about-version">VERSION 1.0.5 // BUILD 105 // PRODUCTION STUDIO RELEASE</div>
                     <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a
@@ -2100,15 +2023,6 @@ function App() {
                       >
                         GITHUB: github.com/Naphatpuurin/AI-Assist-Photo-Culler ↗
                       </a>
-                      <button
-                        type="button"
-                        className="updater-inline-btn"
-                        style={{ marginLeft: 0, padding: '4px 9px', fontSize: '10.5px' }}
-                        onClick={openSplashPreview}
-                        title="Display the 750x500 Studio Splash Screen"
-                      >
-                        🎴 VIEW SPLASH SCREEN
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -2404,110 +2318,6 @@ function App() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Studio Splash / Loading Screen (750x500 Dynamic Scaling) */}
-      {showSplash && (
-        <div
-          className={`splash-backdrop ${splashFading ? 'fading-out' : ''}`}
-          role="dialog"
-          aria-modal="true"
-          onClick={dismissSplash}
-        >
-          <div className="splash-card" onClick={(e) => e.stopPropagation()}>
-            {isSplashManualPreview && (
-              <button
-                type="button"
-                className="splash-close-btn"
-                onClick={dismissSplash}
-                title="Close Splash Screen [ESC]"
-              >
-                ESC ✕
-              </button>
-            )}
-
-            {/* Left Column: Branding, Live Telemetry & Contributor Credits */}
-            <div className="splash-left">
-              <div className="splash-header-row">
-                <div className="splash-app-badge">
-                  <span className="splash-badge-text">MPC</span>
-                </div>
-                <div className="splash-title-wrap">
-                  <div className="splash-title">MicMose Photo Culler Pro</div>
-                  <div className="splash-subtitle">Studio Culling Workstation</div>
-                </div>
-              </div>
-
-              <div className="splash-meta-block">
-                <div className="splash-copy">
-                  &copy; 2026 Naphatphurin Prachantasena. All rights reserved.
-                </div>
-                <div className="splash-artwork-attribution">
-                  Featured Cover: <strong>&ldquo;Ethereal Woodland&rdquo;</strong> &bull; MicMose Studio Archive
-                </div>
-
-                {/* Live Loading Status & Telemetry Bar */}
-                <div className="splash-status-area">
-                  <div className="splash-status-row">
-                    <div className="splash-status-dot"></div>
-                    <span className="splash-status-text">{splashStatusText}</span>
-                  </div>
-                  <div className="splash-progress-track">
-                    <div
-                      className="splash-progress-bar"
-                      style={{ width: `${Math.max(6, splashProgress)}%` }}
-                    ></div>
-                  </div>
-                </div>
-
-                {/* Contributor Credits Block */}
-                <div className="splash-credits-block">
-                  <div className="splash-credits-line">
-                    <span>Architecture &amp; AI:</span> Naphatphurin Prachantasena
-                  </div>
-                  <div className="splash-credits-line">
-                    <span>Neural Detection:</span> YOLOv8 ONNX Runtime DirectML
-                  </div>
-                  <div className="splash-credits-line">
-                    <span>Focus Isolation:</span> High-Frequency Laplacian Variance (Bokeh-Safe)
-                  </div>
-                  <div className="splash-credits-line">
-                    <span>RAW &amp; Telemetry:</span> Adobe Camera Raw 16.0 XMP Architecture
-                  </div>
-                  <div className="splash-credits-line">
-                    <span>Dedicated to:</span> Professional Event &amp; Portrait Photographers
-                  </div>
-                </div>
-              </div>
-
-              {/* Bottom Brand Bar */}
-              <div className="splash-bottom-row">
-                <div className="splash-studio-brand">
-                  <img src={logoRegular} alt="Studio Emblem" className="splash-brand-logo" />
-                  <span className="splash-brand-name">MicMose Creative Studio</span>
-                </div>
-                <div className="splash-dismiss-hint">
-                  {splashProgress >= 100 ? '[CLICK TO CONTINUE]' : 'v1.0.4 // BUILD 104'}
-                </div>
-              </div>
-            </div>
-
-            {/* Right Column: Featured Photograph */}
-            <div className="splash-right" onClick={dismissSplash}>
-              <div className="splash-photo-wrap">
-                <img
-                  src={splashCover}
-                  alt="Featured Cover Artwork"
-                  className="splash-photo-img"
-                />
-                <div className="splash-photo-overlay"></div>
-                <div className="splash-telemetry-pill">
-                  &bull; Naphatphurin Prachantasena &bull; 85mm f/1.4 &bull; ISO 100
-                </div>
-              </div>
             </div>
           </div>
         </div>

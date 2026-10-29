@@ -1,7 +1,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="MicMose Photo Culler Pro" 
            Manufacturer="Naphatphurin Prachantasena" 
-           Version="1.0.4.0" 
+           Version="1.0.5.0" 
            UpgradeCode="4C6F1693-0DB9-4A9B-A152-A9F68B6EBE29"
            Scope="perUserOrMachine">
     
