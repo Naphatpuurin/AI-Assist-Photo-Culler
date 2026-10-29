@@ -5,6 +5,15 @@ from pydantic import BaseModel
 import os
 import sys
 import traceback
+import re
+import json
+import ssl
+import tempfile
+import subprocess
+import threading
+import time
+import urllib.request
+import urllib.error
 
 if sys.stdout is None:
     sys.stdout = open(os.devnull, "w", encoding="utf-8")
@@ -500,6 +509,260 @@ def export_files(request: ExportRequest):
         "xmp_sidecars": xmp_count,
         "errors": errors
     }
+
+
+# ----------------------------------------------------
+# Auto-Updater System (GitHub Releases Integration)
+# ----------------------------------------------------
+APP_VERSION = "1.0.2"
+APP_BUILD = 102
+GITHUB_REPO = "Naphatpuurin/AI-Assist-Photo-Culler"
+GITHUB_LATEST_API = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+
+updater_lock = threading.Lock()
+updater_state = {
+    "status": "idle",  # 'idle' | 'downloading' | 'ready_to_install' | 'installing' | 'error'
+    "progress": 0.0,
+    "bytes_downloaded": 0,
+    "total_bytes": 0,
+    "speed_mbps": 0.0,
+    "filename": "",
+    "file_path": "",
+    "error_message": "",
+    "launched": False,
+    "last_checked": ""
+}
+
+
+def parse_semver(ver_str: str):
+    cleaned = re.sub(r'^[^\d]*', '', str(ver_str))
+    parts = [int(p) for p in re.findall(r'\d+', cleaned)]
+    while len(parts) < 3:
+        parts.append(0)
+    return tuple(parts[:3])
+
+
+def match_platform_asset(assets: list):
+    is_mac = sys.platform == "darwin"
+    if is_mac:
+        for a in assets:
+            if a.get("name", "").lower().endswith(".dmg"):
+                return a
+    else:
+        # Prefer Inno Setup installer executable
+        for a in assets:
+            name = a.get("name", "").lower()
+            if "setup" in name and name.endswith(".exe"):
+                return a
+        # Fallback to MSI
+        for a in assets:
+            if a.get("name", "").lower().endswith(".msi"):
+                return a
+        # Fallback to standalone .exe (ignoring .cer certs)
+        for a in assets:
+            name = a.get("name", "").lower()
+            if name.endswith(".exe") and not name.endswith(".cer"):
+                return a
+    # Universal fallback: any installer/archive
+    for a in assets:
+        name = a.get("name", "").lower()
+        if name.endswith((".exe", ".dmg", ".msi", ".zip")):
+            return a
+    return None
+
+
+class DownloadInstallRequest(BaseModel):
+    download_url: str = ""
+    asset_name: str = ""
+
+
+@app.get("/api/updater/check")
+def check_for_updates(force: bool = False):
+    global updater_state
+    try:
+        req = urllib.request.Request(
+            GITHUB_LATEST_API,
+            headers={
+                "User-Agent": "MicMose-Photo-Culler-Pro-Updater",
+                "Accept": "application/vnd.github.v3+json"
+            }
+        )
+        ctx = ssl.create_default_context()
+        with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+
+        tag = data.get("tag_name", "v0.0.0")
+        latest_semver = parse_semver(tag)
+        current_semver = parse_semver(APP_VERSION)
+
+        update_available = (latest_semver > current_semver) or (force is True)
+        assets = data.get("assets", [])
+        matched = match_platform_asset(assets)
+
+        updater_state["last_checked"] = datetime.now().isoformat()
+
+        return {
+            "status": "success",
+            "update_available": update_available,
+            "current_version": APP_VERSION,
+            "current_build": APP_BUILD,
+            "latest_version": tag.lstrip("v"),
+            "tag_name": tag,
+            "release_name": data.get("name", tag),
+            "release_notes": data.get("body", ""),
+            "published_at": data.get("published_at", ""),
+            "html_url": data.get("html_url", f"https://github.com/{GITHUB_REPO}/releases"),
+            "asset": {
+                "name": matched["name"],
+                "size": matched.get("size", 0),
+                "download_url": matched.get("browser_download_url", "")
+            } if matched else None
+        }
+    except urllib.error.URLError as e:
+        return {
+            "status": "error",
+            "message": f"Network error checking for updates: {e.reason}",
+            "current_version": APP_VERSION,
+            "current_build": APP_BUILD,
+            "update_available": False
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": f"Update check error: {str(e)}",
+            "current_version": APP_VERSION,
+            "current_build": APP_BUILD,
+            "update_available": False
+        }
+
+
+@app.get("/api/updater/progress")
+def get_updater_progress():
+    return updater_state
+
+
+def _run_download_and_install(download_url: str, asset_name: str):
+    global updater_state
+    try:
+        if not download_url or not asset_name:
+            req = urllib.request.Request(
+                GITHUB_LATEST_API,
+                headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
+            )
+            ctx = ssl.create_default_context()
+            with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            matched = match_platform_asset(data.get("assets", []))
+            if not matched:
+                raise RuntimeError("No suitable installation package found in release assets.")
+            download_url = matched.get("browser_download_url", "")
+            asset_name = matched.get("name", "update_installer")
+
+        temp_dir = os.path.join(tempfile.gettempdir(), "MicMoseUpdate")
+        os.makedirs(temp_dir, exist_ok=True)
+        dest_file = os.path.join(temp_dir, asset_name)
+
+        with updater_lock:
+            updater_state["status"] = "downloading"
+            updater_state["progress"] = 0.0
+            updater_state["bytes_downloaded"] = 0
+            updater_state["total_bytes"] = 0
+            updater_state["speed_mbps"] = 0.0
+            updater_state["filename"] = asset_name
+            updater_state["file_path"] = dest_file
+            updater_state["error_message"] = ""
+            updater_state["launched"] = False
+
+        req = urllib.request.Request(
+            download_url,
+            headers={"User-Agent": "MicMose-Photo-Culler-Pro-Updater"}
+        )
+        ctx = ssl.create_default_context()
+
+        start_time = time.time()
+        last_calc_time = start_time
+        last_calc_bytes = 0
+
+        with urllib.request.urlopen(req, context=ctx, timeout=30) as resp, open(dest_file, "wb") as out_f:
+            total_bytes = int(resp.headers.get("Content-Length", 0))
+            with updater_lock:
+                updater_state["total_bytes"] = total_bytes
+
+            downloaded = 0
+            chunk_size = 128 * 1024  # 128KB chunks
+            while True:
+                chunk = resp.read(chunk_size)
+                if not chunk:
+                    break
+                out_f.write(chunk)
+                downloaded += len(chunk)
+
+                now = time.time()
+                elapsed = now - last_calc_time
+                if elapsed >= 0.5:
+                    speed = ((downloaded - last_calc_bytes) / elapsed) / (1024 * 1024)
+                    last_calc_time = now
+                    last_calc_bytes = downloaded
+                else:
+                    speed = updater_state["speed_mbps"]
+
+                with updater_lock:
+                    updater_state["bytes_downloaded"] = downloaded
+                    updater_state["speed_mbps"] = round(speed, 2)
+                    if total_bytes > 0:
+                        updater_state["progress"] = round((downloaded / total_bytes) * 100, 1)
+
+        # Download complete
+        with updater_lock:
+            updater_state["status"] = "ready_to_install"
+            updater_state["progress"] = 100.0
+
+        time.sleep(0.5)
+
+        # Launch the installer
+        if sys.platform == "darwin":
+            subprocess.Popen(["open", dest_file])
+        else:
+            if dest_file.lower().endswith(".msi"):
+                subprocess.Popen(["msiexec.exe", "/i", dest_file], shell=False)
+            else:
+                try:
+                    os.startfile(dest_file)
+                except Exception:
+                    subprocess.Popen([dest_file], shell=False)
+
+        with updater_lock:
+            updater_state["status"] = "installing"
+            updater_state["launched"] = True
+
+    except Exception as e:
+        with updater_lock:
+            updater_state["status"] = "error"
+            updater_state["error_message"] = str(e)
+
+
+@app.post("/api/updater/download_and_install")
+def trigger_download_and_install(req: DownloadInstallRequest):
+    with updater_lock:
+        if updater_state["status"] == "downloading":
+            return {"status": "already_in_progress", "state": updater_state}
+
+    t = threading.Thread(
+        target=_run_download_and_install,
+        args=(req.download_url, req.asset_name),
+        daemon=True
+    )
+    t.start()
+    return {"status": "started", "state": updater_state}
+
+
+@app.post("/api/updater/quit_app")
+def quit_app():
+    def _delayed_exit():
+        time.sleep(1.0)
+        os._exit(0)
+    threading.Thread(target=_delayed_exit, daemon=True).start()
+    return {"status": "closing"}
 
 
 from fastapi.staticfiles import StaticFiles

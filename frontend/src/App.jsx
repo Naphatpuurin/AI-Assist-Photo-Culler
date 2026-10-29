@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
 
@@ -76,6 +76,193 @@ function App() {
   const [dialogMode, setDialogMode] = useState(null); // null | 'open' | 'export'
   const [pathInput, setPathInput] = useState('');
   const [statusMessage, setStatusMessage] = useState('STANDBY // LOAD FOLDER FOR PARALLEL GPU CULLING');
+
+  // ---------------- Auto-Updater & 3-Button Update Dialog ----------------
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [updateState, setUpdateState] = useState('prompt'); // 'prompt' | 'downloading' | 'installed' | 'error'
+  const [updaterProgress, setUpdaterProgress] = useState({
+    status: 'idle',
+    progress: 0,
+    bytes_downloaded: 0,
+    total_bytes: 0,
+    speed_mbps: 0,
+    filename: '',
+    error_message: ''
+  });
+  const [updateError, setUpdateError] = useState('');
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [manualCheckMessage, setManualCheckMessage] = useState(null);
+  const [skippedVersion, setSkippedVersion] = useState(() => {
+    try {
+      return localStorage.getItem('micmose_skipped_version');
+    } catch {
+      return null;
+    }
+  });
+  const pollTimerRef = useRef(null);
+
+  const startPollingProgress = useCallback(() => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    pollTimerRef.current = setInterval(async () => {
+      try {
+        const res = await fetch('http://localhost:8000/api/updater/progress');
+        if (res.ok) {
+          const prog = await res.json();
+          setUpdaterProgress(prog);
+          if (prog.status === 'installing' || prog.launched) {
+            setUpdateState('installed');
+            clearInterval(pollTimerRef.current);
+          } else if (prog.status === 'error') {
+            setUpdateError(prog.error_message || 'Download failed');
+            setUpdateState('error');
+            clearInterval(pollTimerRef.current);
+          }
+        }
+      } catch (err) {
+        console.warn('Progress poll error:', err);
+      }
+    }, 400);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, []);
+
+  // Auto-check for updates on startup (2.5s delay)
+  useEffect(() => {
+    const autoCheckUpdates = async () => {
+      try {
+        if (sessionStorage.getItem('micmose_remind_later') === 'true') {
+          return;
+        }
+        const res = await fetch('http://localhost:8000/api/updater/check');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success' && data.update_available) {
+            const userSkipped = localStorage.getItem('micmose_skipped_version');
+            if (userSkipped && userSkipped === data.latest_version) {
+              console.log(`Update v${data.latest_version} skipped by user preference.`);
+              return;
+            }
+            setUpdateInfo(data);
+            setUpdateState('prompt');
+            setShowUpdateModal(true);
+          }
+        }
+      } catch {
+        // Silently ignore background check errors
+      }
+    };
+
+    const timer = setTimeout(autoCheckUpdates, 2500);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Button 1: Skip updates (persists in localStorage)
+  const handleSkipUpdate = () => {
+    if (updateInfo?.latest_version) {
+      localStorage.setItem('micmose_skipped_version', updateInfo.latest_version);
+      setSkippedVersion(updateInfo.latest_version);
+    }
+    setShowUpdateModal(false);
+    setStatusMessage(`UPDATE v${updateInfo?.latest_version || ''} SKIPPED // WILL NOT REMIND FOR THIS RELEASE`);
+  };
+
+  // Button 2: Remind me later (sessionStorage only)
+  const handleRemindLater = () => {
+    sessionStorage.setItem('micmose_remind_later', 'true');
+    setShowUpdateModal(false);
+    setStatusMessage('UPDATE NOTIFICATION SNOOZED // WILL REMIND NEXT SESSION');
+  };
+
+  // Button 3: Update (pulls latest release and installs)
+  const handleStartUpdate = async () => {
+    setUpdateState('downloading');
+    setUpdateError('');
+    try {
+      const res = await fetch('http://localhost:8000/api/updater/download_and_install', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          download_url: updateInfo?.asset?.download_url || '',
+          asset_name: updateInfo?.asset?.name || ''
+        })
+      });
+      if (!res.ok) {
+        setUpdateState('error');
+        setUpdateError(`Server returned HTTP ${res.status}`);
+        return;
+      }
+      startPollingProgress();
+    } catch (err) {
+      setUpdateState('error');
+      setUpdateError(err.message || 'Failed to start download');
+    }
+  };
+
+  const handleQuitApp = async () => {
+    try {
+      await fetch('http://localhost:8000/api/updater/quit_app', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+    try {
+      window.close();
+    } catch {
+      // ignore
+    }
+  };
+
+  const clearSkippedVersion = () => {
+    localStorage.removeItem('micmose_skipped_version');
+    setSkippedVersion(null);
+    setManualCheckMessage({
+      type: 'info',
+      text: 'Skipped release preference cleared. You will receive notifications for new releases.'
+    });
+  };
+
+  const handleManualCheckUpdate = async (forcePreview = false) => {
+    setIsCheckingUpdate(true);
+    setManualCheckMessage(null);
+    try {
+      const url = `http://localhost:8000/api/updater/check${forcePreview ? '?force=true' : ''}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      if (data.status === 'success') {
+        if (data.update_available) {
+          setUpdateInfo(data);
+          setUpdateState('prompt');
+          setShowUpdateModal(true);
+          setManualCheckMessage({
+            type: 'success',
+            text: `Update found: ${data.release_name || data.latest_version} (${data.asset ? data.asset.name : 'Binary'})`
+          });
+        } else {
+          setManualCheckMessage({
+            type: 'info',
+            text: `✓ You are running the latest studio version (v${data.current_version} // Build ${data.current_build}).`
+          });
+        }
+      } else {
+        setManualCheckMessage({
+          type: 'error',
+          text: data.message || 'Failed to check updates from GitHub.'
+        });
+      }
+    } catch (err) {
+      setManualCheckMessage({
+        type: 'error',
+        text: `Unable to connect to GitHub update service: ${err.message}`
+      });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -360,6 +547,10 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (showUpdateModal) {
+        if (e.key === 'Escape' && updateState !== 'downloading') setShowUpdateModal(false);
+        return;
+      }
       if (showAboutModal) {
         if (e.key === 'Escape') setShowAboutModal(false);
         return;
@@ -401,7 +592,7 @@ function App() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
+  }, [showUpdateModal, updateState, showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
 
   const loadDirectoryFromPath = async (dirPath) => {
     const trimmed = dirPath.trim();
@@ -1728,6 +1919,70 @@ function App() {
                   </div>
                 </div>
 
+                {/* Software Updates Section */}
+                <div className="settings-section">
+                  <div className="settings-sec-head">
+                    <span className="settings-section-title">04 // SOFTWARE UPDATES &amp; RELEASE CHANNEL</span>
+                    <span className="settings-section-sub">Automated release checks via GitHub Releases:</span>
+                  </div>
+                  <div className="settings-updater-card">
+                    <div className="hw-row">
+                      <span className="hw-k">INSTALLED BUILD</span>
+                      <span className="hw-v highlight">VERSION 1.0.2 // BUILD 102</span>
+                    </div>
+                    <div className="hw-row">
+                      <span className="hw-k">RELEASE CHANNEL</span>
+                      <span className="hw-v">Production Stable (GitHub Releases)</span>
+                    </div>
+                    <div className="hw-row">
+                      <span className="hw-k">AUTO-CHECK ON START</span>
+                      <span className="hw-v status-ok">● Enabled (with Skip / Remind controls)</span>
+                    </div>
+                    {skippedVersion && (
+                      <div className="hw-row">
+                        <span className="hw-k">SKIPPED VERSION</span>
+                        <span className="hw-v">
+                          v{skippedVersion}{' '}
+                          <button
+                            type="button"
+                            className="updater-inline-btn"
+                            onClick={clearSkippedVersion}
+                            title="Reset skipped release so you get notified again"
+                          >
+                            [ RESET / UN-SKIP ]
+                          </button>
+                        </span>
+                      </div>
+                    )}
+                    {manualCheckMessage && (
+                      <div className={`updater-feedback-msg ${manualCheckMessage.type}`}>
+                        {manualCheckMessage.text}
+                      </div>
+                    )}
+                    <div className="updater-actions-row">
+                      <button
+                        type="button"
+                        className="nr-btn mineral updater-check-btn"
+                        disabled={isCheckingUpdate}
+                        onClick={() => handleManualCheckUpdate(false)}
+                      >
+                        <span>{isCheckingUpdate ? 'CHECKING GITHUB...' : 'CHECK FOR UPDATES NOW'}</span>
+                        <span>[CHECK ⟳]</span>
+                      </button>
+                      <button
+                        type="button"
+                        className="nr-btn updater-preview-btn"
+                        disabled={isCheckingUpdate}
+                        onClick={() => handleManualCheckUpdate(true)}
+                        title="Simulate / Preview the Update Dialog and 3 buttons"
+                      >
+                        <span>PREVIEW UPDATE MODAL</span>
+                        <span>[DEMO]</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="dialog-actions">
                   <button
                     type="button"
@@ -1817,6 +2072,251 @@ function App() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Editorial Modal Dialog for Auto-Updater */}
+      {showUpdateModal && updateInfo && (
+        <div
+          className="modal-backdrop update-modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => {
+            if (updateState !== 'downloading') setShowUpdateModal(false);
+          }}
+        >
+          <div className="editorial-dialog update-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-head update-head">
+              <div className="update-title-wrap">
+                <span className="update-badge-pill">UPDATE NOTIFICATION</span>
+                <span className="update-title-text">
+                  {updateState === 'downloading'
+                    ? 'PULLING RELEASE PACKAGE...'
+                    : updateState === 'installed'
+                    ? 'INSTALLER LAUNCHED'
+                    : 'NEW PRODUCTION RELEASE AVAILABLE'}
+                </span>
+              </div>
+              <div className="update-head-right">
+                <span className="version-diff-pill">
+                  v{updateInfo.current_version} ➔ v{updateInfo.latest_version}
+                </span>
+                {updateState !== 'downloading' && (
+                  <button
+                    type="button"
+                    className="close-tab-btn"
+                    onClick={() => setShowUpdateModal(false)}
+                    title="Close Dialog [ESC]"
+                  >
+                    ESC ✕
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="dialog-body update-body">
+              {updateState === 'prompt' && (
+                <div className="update-prompt-view">
+                  <div className="update-meta-card">
+                    <div className="update-meta-row">
+                      <span className="meta-label">RELEASE TAG:</span>
+                      <span className="meta-value tag-name">{updateInfo.tag_name || `v${updateInfo.latest_version}`}</span>
+                    </div>
+                    <div className="update-meta-row">
+                      <span className="meta-label">RELEASE NAME:</span>
+                      <span className="meta-value">{updateInfo.release_name || 'Production Studio Release'}</span>
+                    </div>
+                    {updateInfo.published_at && (
+                      <div className="update-meta-row">
+                        <span className="meta-label">PUBLISHED:</span>
+                        <span className="meta-value">{new Date(updateInfo.published_at).toLocaleString()}</span>
+                      </div>
+                    )}
+                    {updateInfo.asset && (
+                      <div className="update-meta-row">
+                        <span className="meta-label">PACKAGE:</span>
+                        <span className="meta-value package-name">
+                          {updateInfo.asset.name} ({(updateInfo.asset.size / (1024 * 1024)).toFixed(1)} MB)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Release Notes */}
+                  <div className="update-notes-container">
+                    <div className="update-notes-head">
+                      <span>01 // RELEASE NOTES &amp; CHANGELOG</span>
+                      <a
+                        href={updateInfo.html_url || `https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="view-github-link"
+                      >
+                        VIEW ON GITHUB ↗
+                      </a>
+                    </div>
+                    <div className="update-notes-body">
+                      {updateInfo.release_notes ? (
+                        <pre className="notes-pre">{updateInfo.release_notes}</pre>
+                      ) : (
+                        <div className="no-notes">
+                          Official release build with verified performance optimizations, hardware matrix acceleration, and code-signed installers.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* The 3 Buttons Requested by User */}
+                  <div className="update-modal-buttons">
+                    <button
+                      type="button"
+                      className="update-action-btn btn-skip"
+                      onClick={handleSkipUpdate}
+                      title="Don't ask again for this specific release"
+                    >
+                      <div className="btn-title">1. SKIP UPDATES</div>
+                      <div className="btn-sub">Never remind me for v{updateInfo.latest_version}</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="update-action-btn btn-remind"
+                      onClick={handleRemindLater}
+                      title="Dismiss for now and remind next session"
+                    >
+                      <div className="btn-title">2. REMIND ME LATER</div>
+                      <div className="btn-sub">Snooze prompt for this session</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      className="update-action-btn btn-update"
+                      onClick={handleStartUpdate}
+                      title="Download package and launch installer"
+                    >
+                      <div className="btn-title">3. UPDATE</div>
+                      <div className="btn-sub">Pull from GitHub &amp; install now ➔</div>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {updateState === 'downloading' && (
+                <div className="update-progress-view">
+                  <div className="progress-banner">
+                    <div className="pulse-dot"></div>
+                    <span className="progress-status-txt">
+                      PULLING LATEST RELEASE FROM GITHUB REPOSITORIES...
+                    </span>
+                  </div>
+
+                  <div className="download-target-info">
+                    <span>TARGET PACKAGE: <strong>{updaterProgress.filename || updateInfo.asset?.name || 'Installer'}</strong></span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="update-progress-bar-wrap">
+                    <div
+                      className="update-progress-bar-fill"
+                      style={{ width: `${Math.max(4, updaterProgress.progress)}%` }}
+                    >
+                      <span className="progress-fill-text">{Math.round(updaterProgress.progress)}%</span>
+                    </div>
+                  </div>
+
+                  <div className="download-stats-row">
+                    <span className="stats-bytes">
+                      {(updaterProgress.bytes_downloaded / (1024 * 1024)).toFixed(1)} MB / {(updaterProgress.total_bytes / (1024 * 1024)).toFixed(1)} MB
+                    </span>
+                    <span className="stats-speed">
+                      TRANSFER SPEED: {updaterProgress.speed_mbps || 0} MB/s
+                    </span>
+                  </div>
+
+                  <div className="download-info-cue">
+                    The installer will automatically unpack into a temporary directory and launch as soon as the download finishes.
+                  </div>
+                </div>
+              )}
+
+              {updateState === 'installed' && (
+                <div className="update-complete-view">
+                  <div className="complete-banner">
+                    <span className="check-icon">✓</span>
+                    <div className="complete-text">
+                      <h3>INSTALLER LAUNCHED SUCCESSFULLY</h3>
+                      <p>
+                        The setup wizard for <strong>{updaterProgress.filename || updateInfo.asset?.name || 'MicMose Photo Culler Pro'}</strong> is running.
+                      </p>
+                      <p className="complete-sub">
+                        Please exit this running instance to allow the installer to replace binary files without file locks.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="complete-actions">
+                    <button
+                      type="button"
+                      className="nr-btn vermilion"
+                      onClick={handleQuitApp}
+                    >
+                      <span>EXIT &amp; CLOSE APP TO COMPLETE UPDATE</span>
+                      <span>[EXIT NOW ✕]</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="nr-btn"
+                      onClick={() => setShowUpdateModal(false)}
+                    >
+                      <span>KEEP RUNNING &amp; CLOSE DIALOG</span>
+                      <span>[ESC]</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {updateState === 'error' && (
+                <div className="update-error-view">
+                  <div className="error-banner">
+                    <span className="err-icon">⚠</span>
+                    <div className="err-text">
+                      <h3>UPDATE DOWNLOAD FAILED</h3>
+                      <p>{updateError || 'An error occurred while pulling the update package.'}</p>
+                    </div>
+                  </div>
+
+                  <div className="error-actions">
+                    <button
+                      type="button"
+                      className="nr-btn mineral"
+                      onClick={handleStartUpdate}
+                    >
+                      <span>RETRY DOWNLOAD</span>
+                      <span>[RETRY ⟳]</span>
+                    </button>
+                    <a
+                      href={updateInfo.html_url || `https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="nr-btn"
+                      style={{ textDecoration: 'none', display: 'inline-flex' }}
+                    >
+                      <span>DOWNLOAD FROM GITHUB IN BROWSER</span>
+                      <span>[BROWSER ↗]</span>
+                    </a>
+                    <button
+                      type="button"
+                      className="nr-btn"
+                      onClick={() => setShowUpdateModal(false)}
+                    >
+                      <span>CLOSE</span>
+                      <span>[ESC]</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
