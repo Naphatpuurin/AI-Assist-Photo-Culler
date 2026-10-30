@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
 :root {
   /* Light Mode (Chalk Default #F4F3EE) */
   --bg-primary: #F4F3EE;
@@ -15,6 +17,25 @@
   --font-display: "Arial Black", "Helvetica Neue", "Impact", sans-serif;
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+[data-lang="th"],
+[data-lang="th"] body,
+html[lang="th"],
+body[data-lang="th"] {
+  --font-sans: "Noto Sans Thai", "Leelawadee UI", "Thonburi", "Leelawadee", "Tahoma", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Noto Sans Thai", "Leelawadee UI", "Arial Black", "Helvetica Neue", sans-serif;
+  --font-mono: "Noto Sans Thai", "Leelawadee UI", ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
+  font-family: var(--font-sans);
+}
+
+[data-lang="th"] .brand-mark,
+[data-lang="th"] .section-head,
+[data-lang="th"] .settings-section-title,
+[data-lang="th"] .about-title,
+[data-lang="th"] .tier-code,
+[data-lang="th"] .telemetry-head {
+  letter-spacing: 0.04em;
 }
 
 [data-theme="dark"] {

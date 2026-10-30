@@ -78,6 +78,11 @@ This document serves as the architectural overview, critical system audit, opera
   - Cleaned `backend/requirements.txt` to remove unused heavy dependencies (PyTorch, Ultralytics) saving ~2GB disk and build overhead. Optional dev tools migrated to `backend/requirements-dev.txt`.
 - [x] **Core Logic & Security Test Suite**:
   - Added unit test suite in `tests/test_core_logic.py` validating port scanning, version loading, HTML injection, and SHA-256 hash enforcement.
+- [x] **Bilingual Localization & Noto Sans Thai Support**:
+  - Added full Thai language support (`ภาษาไทย`) alongside English.
+  - Implemented language switcher in Studio Settings (`02 // INTERFACE LANGUAGE`) and quick toggle in header status bar.
+  - Configured Google Font `Noto Sans Thai` with native fallback font stack (`Leelawadee UI`, `Thonburi`, `Tahoma`, system sans-serif).
+  - Persisted user language preference in `localStorage` and synchronized with DOM attributes (`data-lang="th"`, `lang="th"`).
 
 ### Phase 2: Performance & Architecture Streamlining
 - [ ] **Frontend Component Decomposition**:

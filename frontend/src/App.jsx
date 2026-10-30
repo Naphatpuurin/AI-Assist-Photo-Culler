@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
+import { translations } from './i18n'
 
 const API_BASE = (function() {
   if (typeof window !== 'undefined') {
@@ -41,6 +42,27 @@ const getImageUrl = (endpoint, params = {}) => {
 
 function App() {
   const [theme, setTheme] = useState('dark');
+  const [lang, setLang] = useState(() => {
+    try {
+      return localStorage.getItem('micmose_language') || 'en';
+    } catch {
+      return 'en';
+    }
+  });
+
+  const t = translations[lang] || translations.en;
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-lang', lang);
+    document.documentElement.setAttribute('lang', lang);
+    document.body.setAttribute('data-lang', lang);
+    try {
+      localStorage.setItem('micmose_language', lang);
+    } catch {
+      // ignore
+    }
+  }, [lang]);
+
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [aboutTab, setAboutTab] = useState('settings'); // 'settings' | 'about'
 
@@ -63,18 +85,7 @@ function App() {
   const [rejectMisfires, setRejectMisfires] = useState(true);
   const [rejectDocuments, setRejectDocuments] = useState(true);
 
-  const focusLevelDescriptions = {
-    1: "LVL 01 // ULTRA LOOSE — Accepts almost everything. Minor motion blur and low light allowed.",
-    2: "LVL 02 // VERY FORGIVING — Soft focus and wide-aperture shallow depth-of-field accepted.",
-    3: "LVL 03 // RELAXED — Forgives f/1.4 softness and minor candlelit handshake.",
-    4: "LVL 04 // GENTLE — Mild softness allowed, ideal for fast action & active subjects.",
-    5: "LVL 05 // BALANCED (DEFAULT) — Proven event baseline (~236/640 Selects). Crisp subjects, balanced exposure.",
-    6: "LVL 06 // CRISP — Clear subject edges and controlled highlights/shadows.",
-    7: "LVL 07 // STRICT — Demands distinct subject plane contrast with minimal motion blur.",
-    8: "LVL 08 // VERY STRICT — Tack-sharp subject planes only.",
-    9: "LVL 09 // CRITICAL — Razor-sharp focus with no optical softness.",
-    10: "LVL 10 // CLINICAL — Only 100% optical perfection and balanced histogram pass."
-  };
+  const focusLevelDescriptions = t.focus_levels;
 
   // ---------------- Cull-to-Target (Optional), Auto Highlights & Auto-Stacking ----------------
   // OFF by default so all deserving 3★ Selects (e.g. 236/640) are preserved!
@@ -114,7 +125,20 @@ function App() {
   // Modal Dialog
   const [dialogMode, setDialogMode] = useState(null); // null | 'open' | 'export'
   const [pathInput, setPathInput] = useState('');
-  const [statusMessage, setStatusMessage] = useState('STANDBY // LOAD FOLDER FOR PARALLEL GPU CULLING');
+  const [statusMessage, setStatusMessage] = useState(() => {
+    try {
+      const savedLang = localStorage.getItem('micmose_language') || 'en';
+      return (translations[savedLang] || translations.en).status_standby;
+    } catch {
+      return translations.en.status_standby;
+    }
+  });
+
+  useEffect(() => {
+    if (statusMessage === translations.en.status_standby || statusMessage === translations.th.status_standby) {
+      setStatusMessage(t.status_standby);
+    }
+  }, [lang, t]);
 
   // ---------------- Auto-Updater & 3-Button Update Dialog ----------------
   const [showUpdateModal, setShowUpdateModal] = useState(false);
@@ -833,11 +857,11 @@ function App() {
   const filledSteps = Math.round((processProgress / 100) * 18);
 
   const renderRatingBadge = (info) => {
-    if (!info) return <span className="cue-rating-tag tier-0">UNSCORED</span>;
-    if (info.is_highlight) return <span className="cue-rating-tag tier-highlight">★ HIGHLIGHT</span>;
-    if (info.ai_rating === 3) return <span className="cue-rating-tag tier-3">★★★ SELECT</span>;
-    if (info.ai_rating === 2) return <span className="cue-rating-tag tier-2">★★ MAYBE</span>;
-    return <span className="cue-rating-tag tier-1">★ REJECT</span>;
+    if (!info) return <span className="cue-rating-tag tier-0">{t.unscored}</span>;
+    if (info.is_highlight) return <span className="cue-rating-tag tier-highlight">{t.badge_highlight}</span>;
+    if (info.ai_rating === 3) return <span className="cue-rating-tag tier-3">{t.badge_select}</span>;
+    if (info.ai_rating === 2) return <span className="cue-rating-tag tier-2">{t.badge_maybe}</span>;
+    return <span className="cue-rating-tag tier-1">{t.badge_reject}</span>;
   };
 
   return (
@@ -853,15 +877,15 @@ function App() {
             type="button"
             className="settings-corner-btn"
             onClick={() => { setAboutTab('settings'); setShowAboutModal(true); }}
-            title="Studio Settings & Telemetry [S]"
+            title={t.settings_tooltip}
           >
             <span className="settings-icon">⚙</span>
-            <span className="settings-label">SETTINGS</span>
+            <span className="settings-label">{t.settings}</span>
           </button>
         </div>
         <div className="system-meta">
           <span className="learning-pill" title="Learning AI adapts to your manual star rating overrides">
-            <span>AI: {hwStatus.learning?.style_label || 'Baseline'}</span>
+            <span>{t.ai_learning_label} {hwStatus.learning?.style_label || t.baseline}</span>
           </span>
           <span className="gpu-pill" title="Automatic GPU OpenCL + DirectML with CPU Fallback">
             <span>{hwStatus.device_name}</span>
@@ -876,9 +900,18 @@ function App() {
           <button
             type="button"
             className="theme-toggle-btn"
+            onClick={() => setLang(prev => (prev === 'en' ? 'th' : 'en'))}
+            title={lang === 'en' ? 'สลับเป็นภาษาไทย [TH]' : 'Switch to English [EN]'}
+            style={{ fontWeight: 700 }}
+          >
+            {lang === 'en' ? '🇹🇭 ไทย' : '🇺🇸 EN'}
+          </button>
+          <button
+            type="button"
+            className="theme-toggle-btn"
             onClick={() => setTheme(prev => (prev === 'dark' ? 'light' : 'dark'))}
           >
-            {theme === 'dark' ? '☀ WHITE CHALK' : '☾ DARK'}
+            {theme === 'dark' ? t.theme_chalk : t.theme_dark}
           </button>
         </div>
       </header>
@@ -889,8 +922,8 @@ function App() {
           {/* 01. Source Directory */}
           <div className="rail-section">
             <div className="section-head">
-              <span>01 // SOURCE ROLL</span>
-              <span>{images.length} FILES</span>
+              <span>{t.sec_source_roll}</span>
+              <span>{t.files_count(images.length)}</span>
             </div>
             <div className="section-body" style={{ display: 'flex', gap: '6px' }}>
               <button
@@ -899,7 +932,7 @@ function App() {
                 onClick={() => handleBrowseNativeFolder(false)}
                 disabled={isProcessing}
               >
-                <span>Browse...</span>
+                <span>{t.btn_browse}</span>
                 <span>[WIN]</span>
               </button>
               <button
@@ -908,7 +941,7 @@ function App() {
                 onClick={() => { setPathInput(currentPath || ''); setDialogMode('open'); }}
                 disabled={isProcessing}
               >
-                <span>Path</span>
+                <span>{t.btn_path}</span>
                 <span>[...]</span>
               </button>
             </div>
@@ -917,13 +950,13 @@ function App() {
           {/* 02. Subject Focus Level 1-10 & Reject Criteria */}
           <div className="rail-section">
             <div className="section-head">
-              <span>02 // SUBJECT FOCUS (LVL 1-10)</span>
-              <span>AI PRESET</span>
+              <span>{t.sec_subject_focus}</span>
+              <span>{t.ai_preset}</span>
             </div>
             <div className="section-body">
               <div className="strictness-header">
-                <span>SUBJECT FOCUS LEVEL</span>
-                <span className="strictness-lvl-badge">LEVEL {focusLevel} / 10</span>
+                <span>{t.subject_focus_level}</span>
+                <span className="strictness-lvl-badge">{t.level_of_10(focusLevel)}</span>
               </div>
               <input
                 type="range"
@@ -960,10 +993,10 @@ function App() {
                       }
                     }}
                   />
-                  <span>CAP BY TARGET %</span>
+                  <span>{t.cap_target_pct}</span>
                 </label>
                 <span className="strictness-lvl-badge" style={{ background: cullToTargetEnabled ? 'var(--mineral-blue)' : 'var(--rule-soft)' }}>
-                  {cullToTargetEnabled ? `KEEP ${targetKeepPercent}%` : 'UNCAPPED'}
+                  {cullToTargetEnabled ? t.keep_pct(targetKeepPercent) : t.uncapped}
                 </span>
               </div>
               {cullToTargetEnabled && (
@@ -987,7 +1020,7 @@ function App() {
 
               <div className="criteria-check-list">
                 <label className="subject-toggle-row">
-                  <span>Require Subject in Frame</span>
+                  <span>{t.require_subjects}</span>
                   <input
                     type="checkbox"
                     checked={requireSubjects}
@@ -996,7 +1029,7 @@ function App() {
                   />
                 </label>
                 <label className="subject-toggle-row">
-                  <span>Strict Closed-Eye Reject</span>
+                  <span>{t.strict_closed_eye}</span>
                   <input
                     type="checkbox"
                     checked={rejectClosedEyes}
@@ -1005,7 +1038,7 @@ function App() {
                   />
                 </label>
                 <label className="subject-toggle-row">
-                  <span>Reject Exposure Issues</span>
+                  <span>{t.reject_exposure}</span>
                   <input
                     type="checkbox"
                     checked={rejectExposure}
@@ -1014,7 +1047,7 @@ function App() {
                   />
                 </label>
                 <label className="subject-toggle-row">
-                  <span>Reject Misfires &amp; Documents</span>
+                  <span>{t.reject_misfires}</span>
                   <input
                     type="checkbox"
                     checked={rejectMisfires}
@@ -1032,8 +1065,8 @@ function App() {
           {/* 03. Core Culling Tiers */}
           <div className="rail-section">
             <div className="section-head">
-              <span>03 // CULLING TIERS</span>
-              <span>{counts.stacks > 0 ? `${counts.stacks} STACKS` : 'INDEX'}</span>
+              <span>{t.sec_culling_tiers}</span>
+              <span>{counts.stacks > 0 ? t.stacks_count(counts.stacks) : t.index_label}</span>
             </div>
             <ul className="tier-list" role="list">
               <li className="tier-item">
@@ -1044,7 +1077,7 @@ function App() {
                   onClick={() => { setActiveFilter('all'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">ALL</span>
-                  <span className="tier-label">Complete Roll</span>
+                  <span className="tier-label">{t.tier_all}</span>
                   <span className="tier-count">{counts.all}</span>
                 </button>
               </li>
@@ -1056,7 +1089,7 @@ function App() {
                   onClick={() => { setActiveFilter('3'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">GRN</span>
-                  <span className="tier-label">★★★ Selects (Best)</span>
+                  <span className="tier-label">{t.tier_selects}</span>
                   <span className="tier-count">{counts.selects}</span>
                 </button>
               </li>
@@ -1068,7 +1101,7 @@ function App() {
                   onClick={() => { setActiveFilter('highlights'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">BLU</span>
-                  <span className="tier-label">★ Highlights (Top Subset)</span>
+                  <span className="tier-label">{t.tier_highlights}</span>
                   <span className="tier-count">{counts.highlights}</span>
                 </button>
               </li>
@@ -1080,7 +1113,7 @@ function App() {
                   onClick={() => { setActiveFilter('2'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">YLW</span>
-                  <span className="tier-label">★★ Maybes (Review)</span>
+                  <span className="tier-label">{t.tier_maybes}</span>
                   <span className="tier-count">{counts.maybes}</span>
                 </button>
               </li>
@@ -1092,7 +1125,7 @@ function App() {
                   onClick={() => { setActiveFilter('1'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">RED</span>
-                  <span className="tier-label">★ Rejects (Out)</span>
+                  <span className="tier-label">{t.tier_rejects}</span>
                   <span className="tier-count">{counts.rejects}</span>
                 </button>
               </li>
@@ -1102,8 +1135,8 @@ function App() {
           {/* 04. Automatic Detection Filters */}
           <div className="rail-section">
             <div className="section-head">
-              <span>04 // AUTO DETECTION FILTERS</span>
-              <span>FLAGS</span>
+              <span>{t.sec_auto_filters}</span>
+              <span>{t.flags_label}</span>
             </div>
             <ul className="tier-list" role="list">
               <li className="tier-item">
@@ -1114,7 +1147,7 @@ function App() {
                   onClick={() => { setActiveFilter('eyes_open'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">EYE+</span>
-                  <span className="tier-label">Eyes Open &amp; Sharp</span>
+                  <span className="tier-label">{t.filter_eyes_open}</span>
                   <span className="tier-count">{counts.eyes_open}</span>
                 </button>
               </li>
@@ -1126,7 +1159,7 @@ function App() {
                   onClick={() => { setActiveFilter('closed_eyes'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">EYE-</span>
-                  <span className="tier-label">Closed Eyes</span>
+                  <span className="tier-label">{t.filter_closed_eyes}</span>
                   <span className="tier-count">{counts.closed_eyes}</span>
                 </button>
               </li>
@@ -1138,7 +1171,7 @@ function App() {
                   onClick={() => { setActiveFilter('blurry'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">BLUR</span>
-                  <span className="tier-label">Blurry / Soft Focus</span>
+                  <span className="tier-label">{t.filter_blurry}</span>
                   <span className="tier-count">{counts.blurry}</span>
                 </button>
               </li>
@@ -1150,7 +1183,7 @@ function App() {
                   onClick={() => { setActiveFilter('near_duplicates'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">DUP</span>
-                  <span className="tier-label">Near-Duplicates</span>
+                  <span className="tier-label">{t.filter_near_duplicates}</span>
                   <span className="tier-count">{counts.near_duplicates}</span>
                 </button>
               </li>
@@ -1162,7 +1195,7 @@ function App() {
                   onClick={() => { setActiveFilter('creative_variations'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">VAR</span>
-                  <span className="tier-label">Creative Variations</span>
+                  <span className="tier-label">{t.filter_creative_variations}</span>
                   <span className="tier-count">{counts.creative_variations}</span>
                 </button>
               </li>
@@ -1174,7 +1207,7 @@ function App() {
                   onClick={() => { setActiveFilter('exposure_issues'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">EXP</span>
-                  <span className="tier-label">Exposure Issues</span>
+                  <span className="tier-label">{t.filter_exposure_issues}</span>
                   <span className="tier-count">{counts.exposure_issues}</span>
                 </button>
               </li>
@@ -1186,7 +1219,7 @@ function App() {
                   onClick={() => { setActiveFilter('misfires'); setSelectedImageIndex(0); }}
                 >
                   <span className="tier-code">MIS</span>
-                  <span className="tier-label">Misfires / Docs</span>
+                  <span className="tier-label">{t.filter_misfires}</span>
                   <span className="tier-count">{counts.misfires + counts.documents}</span>
                 </button>
               </li>
@@ -1202,7 +1235,7 @@ function App() {
             onClick={startAutoCull}
             disabled={isProcessing || images.length === 0}
           >
-            <span>{isProcessing ? `Parallel GPU Culling (${processProgress}%)` : '▶ Run Parallel AI Culling'}</span>
+            <span>{isProcessing ? t.btn_running_parallel(processProgress) : t.btn_run_parallel}</span>
             <span>[GPU]</span>
           </button>
         </div>
@@ -1211,16 +1244,16 @@ function App() {
       {/* 3. Dominant Center Score & Contact Sheet Stage */}
       <main className="center-stage">
         <div className="stage-topbar">
-          <span>ROLL // {currentPath || 'NO FOLDER LOADED'}</span>
+          <span>{t.roll_label} {currentPath || t.no_folder_loaded}</span>
           <div className="topbar-controls-right">
             <button
               type="button"
               className="stack-toggle-pill"
               aria-pressed={collapseStacks ? 'true' : 'false'}
               onClick={() => { setCollapseStacks(prev => !prev); setSelectedImageIndex(0); }}
-              title="Collapse burst stacks to show only the top Stack Leader per group"
+              title={t.collapse_stacks_tooltip}
             >
-              {collapseStacks ? '▣ STACKS COLLAPSED' : '▤ AUTO-STACKS EXPANDED'}
+              {collapseStacks ? t.stacks_collapsed : t.stacks_expanded}
             </button>
             <div className="view-mode-switch" role="group" aria-label="View mode">
               <button
@@ -1229,7 +1262,7 @@ function App() {
                 aria-pressed={viewMode === 'gallery' ? 'true' : 'false'}
                 onClick={() => setViewMode('gallery')}
               >
-                GRID ({filteredImages.length})
+                {t.mode_grid(filteredImages.length)}
               </button>
               <button
                 type="button"
@@ -1241,7 +1274,7 @@ function App() {
                   setViewMode('loupe');
                 }}
               >
-                LOUPE
+                {t.mode_loupe}
               </button>
             </div>
           </div>
@@ -1252,13 +1285,13 @@ function App() {
           <div className="stage-zone-line">
             <span>
               {activeImage
-                ? `FRAME ${String(selectedImageIndex + 1).padStart(3, '0')}/${String(filteredImages.length).padStart(3, '0')} // ${activeAnalysis?.camera || 'SCANNING EXIF'} // ${activeAnalysis?.lens || ''}`
-                : 'FRAME 000 // STANDBY'}
+                ? `FRAME ${String(selectedImageIndex + 1).padStart(3, '0')}/${String(filteredImages.length).padStart(3, '0')} // ${activeAnalysis?.camera || t.scanning_exif} // ${activeAnalysis?.lens || ''}`
+                : t.frame_standby}
             </span>
             <span>
               {activeAnalysis
                 ? `${activeAnalysis.shutter_speed}  |  ${activeAnalysis.f_stop}  |  ${activeAnalysis.iso}  |  ${activeAnalysis.focal_length}  |  ${activeAnalysis.capture_time}`
-                : 'SELECT PHOTO OR RUN AI CULLING'}
+                : t.select_photo_hint}
             </span>
           </div>
           <h1 className="stage-main-heading">
@@ -1270,21 +1303,21 @@ function App() {
         <section className="telemetry-trio" aria-label="Selected frame AI telemetry">
           <div className="telemetry-cell">
             <div className="telemetry-head">
-              <span>SUBJECT FOCUS (1-10)</span>
-              <span>REQ LVL {focusLevel}</span>
+              <span>{t.telemetry_focus_title}</span>
+              <span>{t.tele_focus_req(focusLevel)}</span>
             </div>
             <div className="telemetry-val">
-              {activeAnalysis ? `Level ${activeAnalysis.focus_level} / 10` : 'Level --'}
+              {activeAnalysis ? t.tele_focus_val(activeAnalysis.focus_level) : 'Level --'}
             </div>
             <div className="telemetry-sub">
-              {activeAnalysis ? `RAW LAPLACIAN: ${activeAnalysis.sharpness}` : 'GPU UMAT CONVOLUTION'}
+              {activeAnalysis ? t.tele_raw_laplacian(activeAnalysis.sharpness) : t.tele_gpu_conv}
             </div>
           </div>
 
           <div className="telemetry-cell">
             <div className="telemetry-head">
-              <span>SHUTTER / F-STOP / ISO</span>
-              <span>EXIF</span>
+              <span>{t.telemetry_exif_title}</span>
+              <span>{t.exif_tag}</span>
             </div>
             <div className="telemetry-val">
               {activeAnalysis
@@ -1292,13 +1325,13 @@ function App() {
                 : '-- · -- · --'}
             </div>
             <div className="telemetry-sub">
-              {activeAnalysis ? `TAKEN: ${activeAnalysis.capture_time}` : 'CAPTURE TIMESTAMP'}
+              {activeAnalysis ? t.tele_taken(activeAnalysis.capture_time) : t.tele_capture_timestamp}
             </div>
           </div>
 
           <div className="telemetry-cell">
             <div className="telemetry-head">
-              <span>ACR DYNAMIC RANGE</span>
+              <span>{t.telemetry_acr_title}</span>
               <span>ACR 16.0</span>
             </div>
             <div className="telemetry-val">
@@ -1309,22 +1342,22 @@ function App() {
             <div className="telemetry-sub">
               {activeAnalysis?.acr
                 ? `HI: ${activeAnalysis.acr.highlights_2012} | SHD: ${activeAnalysis.acr.shadows_2012}`
-                : 'ADOBE CAMERA RAW MODULE'}
+                : t.tele_acr_module}
             </div>
           </div>
 
           <div className="telemetry-cell">
             <div className="telemetry-head">
-              <span>EYES &amp; BURST STACK</span>
+              <span>{t.telemetry_eyes_title}</span>
               <span>INTENT</span>
             </div>
             <div className="telemetry-val">
               {activeAnalysis
-                ? `${activeAnalysis.eye_status === 'open' ? 'EYES OPEN' : activeAnalysis.eye_status === 'closed' ? 'CLOSED EYES' : activeAnalysis.subjects_detected > 0 ? 'SUBJECT LOCKED' : 'SCENE'} · S#${activeAnalysis.stack_id}`
+                ? `${activeAnalysis.eye_status === 'open' ? t.tele_eyes_open : activeAnalysis.eye_status === 'closed' ? t.tele_closed_eyes : activeAnalysis.subjects_detected > 0 ? t.tele_subj_locked : t.tele_scene} · S#${activeAnalysis.stack_id}`
                 : 'Stack --'}
             </div>
             <div className="telemetry-sub">
-              {activeAnalysis ? `ARTIST: ${activeAnalysis.artist}` : 'AUTHOR / ARTIST TAG'}
+              {activeAnalysis ? t.tele_artist(activeAnalysis.artist) : t.tele_author_tag}
             </div>
           </div>
         </section>
@@ -1361,7 +1394,7 @@ function App() {
                       />
                       {info && info.stack_size > 1 && (
                         <span className="stack-badge-overlay">
-                          STACK #{info.stack_id} ({info.is_stack_leader ? `TOP OF ${info.stack_size}` : `${info.stack_size}`})
+                          {t.stack_badge(info.stack_id, info.is_stack_leader, info.stack_size)}
                         </span>
                       )}
                       {info?.flags?.length > 0 && (
@@ -1379,7 +1412,7 @@ function App() {
                           selectCard(idx, true);
                         }}
                       >
-                        LOUPE &#8599;
+                        {t.card_loupe}
                       </button>
                     </div>
                     <div className="cue-card-foot">
@@ -1411,11 +1444,9 @@ function App() {
             </div>
           ) : (
             <div className="empty-cue-sheet">
-              <h3>{loading ? 'Scanning Photo Roll...' : 'No Photos in This Filter View'}</h3>
+              <h3>{loading ? t.empty_scanning : t.empty_no_photos}</h3>
               <p style={{ fontFamily: 'var(--font-mono)', fontSize: '11px', color: 'var(--text-muted)' }}>
-                {images.length === 0
-                  ? 'Click [Browse... WIN] in the top-left rail to open a folder of photos.'
-                  : 'Click [▶ Run Parallel AI Culling] on the bottom-left or select another filter tab.'}
+                {images.length === 0 ? t.empty_hint_browse : t.empty_hint_run}
               </p>
             </div>
           )
@@ -1430,7 +1461,7 @@ function App() {
                     onClick={() => selectCard(Math.max(0, selectedImageIndex - 1), true)}
                     disabled={selectedImageIndex <= 0}
                   >
-                    &larr; PREV
+                    {t.loupe_prev}
                   </button>
 
                   <div className="loupe-img-wrapper">
@@ -1478,7 +1509,7 @@ function App() {
                     onClick={() => selectCard(Math.min(filteredImages.length - 1, selectedImageIndex + 1), true)}
                     disabled={selectedImageIndex >= filteredImages.length - 1}
                   >
-                    NEXT &rarr;
+                    {t.loupe_next}
                   </button>
                 </div>
 
@@ -1491,7 +1522,7 @@ function App() {
                         checked={showSubjectBoxes}
                         onChange={(e) => setShowSubjectBoxes(e.target.checked)}
                       />
-                      <span>ROI Boxes</span>
+                      <span>{t.roi_boxes}</span>
                     </label>
                     <button
                       type="button"
@@ -1499,7 +1530,7 @@ function App() {
                       style={{ padding: '4px 8px' }}
                       onClick={() => toggleHighlight(activeImage.path)}
                     >
-                      ★ Highlight [H]
+                      {t.loupe_highlight}
                     </button>
                     {[3, 2, 1].map((star) => (
                       <button
@@ -1509,7 +1540,7 @@ function App() {
                         style={{ padding: '4px 8px' }}
                         onClick={() => setManualRating(activeImage.path, star)}
                       >
-                        {star === 3 ? '★★★ Select [P]' : star === 2 ? '★★ Maybe [2]' : '★ Reject [X]'}
+                        {star === 3 ? t.loupe_select : star === 2 ? t.loupe_maybe : t.loupe_reject}
                       </button>
                     ))}
                   </div>
@@ -1519,7 +1550,7 @@ function App() {
                     style={{ width: 'auto', padding: '4px 10px' }}
                     onClick={() => setViewMode('gallery')}
                   >
-                    <span>&larr; Grid</span>
+                    <span>{t.loupe_grid_return}</span>
                   </button>
                 </div>
               </>
@@ -1532,21 +1563,21 @@ function App() {
       <aside className="dossier-rail" aria-label="Picture Info, Adobe Camera Raw and Export">
         <div>
           <div className="section-head">
-            <span>PICTURE INFO &amp; EXIF</span>
-            <span>METADATA</span>
+            <span>{t.sec_picture_info}</span>
+            <span>{t.metadata_label}</span>
           </div>
 
           {/* Camera & Lens */}
           <div className="dossier-block">
             <div className="dossier-role-row">
-              <span>Camera &amp; Lens</span>
-              <span className="dossier-lock-tag">OPTICS</span>
+              <span>{t.camera_lens}</span>
+              <span className="dossier-lock-tag">{t.optics_label}</span>
             </div>
             <div className="dossier-value">
-              {activeAnalysis?.camera || 'Click Any Photo'}
+              {activeAnalysis?.camera || t.click_any_photo}
             </div>
             <div className="dossier-sub" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              {activeAnalysis?.lens || 'Unknown Lens'}
+              {activeAnalysis?.lens || t.unknown_lens}
             </div>
             <div className="dossier-sub">
               {activeAnalysis?.dimensions || '--'} · {activeAnalysis?.color_space || 'sRGB'}
@@ -1556,31 +1587,31 @@ function App() {
           {/* Exposure Triad: Shutter, F-Stop, ISO, Focal Length & Time Taken */}
           <div className="dossier-block">
             <div className="dossier-role-row">
-              <span>Exposure &amp; Capture Time</span>
-              <span className="dossier-lock-tag">EXIF</span>
+              <span>{t.exposure_time}</span>
+              <span className="dossier-lock-tag">{t.exif_tag}</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px', fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '4px' }}>
-              <div><strong>SHUTTER:</strong> {activeAnalysis?.shutter_speed || 'N/A'}</div>
-              <div><strong>F-STOP:</strong> {activeAnalysis?.f_stop || 'N/A'}</div>
-              <div><strong>ISO:</strong> {activeAnalysis?.iso || 'N/A'}</div>
-              <div><strong>FOCAL:</strong> {activeAnalysis?.focal_length || 'N/A'}</div>
+              <div><strong>{t.lbl_shutter}</strong> {activeAnalysis?.shutter_speed || 'N/A'}</div>
+              <div><strong>{t.lbl_fstop}</strong> {activeAnalysis?.f_stop || 'N/A'}</div>
+              <div><strong>{t.lbl_iso}</strong> {activeAnalysis?.iso || 'N/A'}</div>
+              <div><strong>{t.lbl_focal}</strong> {activeAnalysis?.focal_length || 'N/A'}</div>
             </div>
             <div className="dossier-sub" style={{ marginTop: '5px', color: 'var(--text-primary)' }}>
-              <strong>TAKEN:</strong> {activeAnalysis?.capture_time || 'Unknown Time'}
+              <strong>{t.lbl_taken}</strong> {activeAnalysis?.capture_time || 'Unknown Time'}
             </div>
           </div>
 
           {/* Author & Artist Name */}
           <div className="dossier-block">
             <div className="dossier-role-row">
-              <span>Author &amp; Artist</span>
-              <span className="dossier-lock-tag">CREDITS</span>
+              <span>{t.author_artist}</span>
+              <span className="dossier-lock-tag">{t.credits_label}</span>
             </div>
             <div className="dossier-sub" style={{ color: 'var(--text-primary)' }}>
-              <strong>ARTIST:</strong> {activeAnalysis?.artist || 'Unknown Artist'}
+              <strong>{t.lbl_artist}</strong> {activeAnalysis?.artist || 'Unknown Artist'}
             </div>
             <div className="dossier-sub" style={{ color: 'var(--text-primary)' }}>
-              <strong>AUTHOR:</strong> {activeAnalysis?.author || 'Unknown Author'}
+              <strong>{t.lbl_author}</strong> {activeAnalysis?.author || 'Unknown Author'}
             </div>
             {activeAnalysis?.copyright && (
               <div className="dossier-sub">
@@ -1592,7 +1623,7 @@ function App() {
           {/* Adobe Camera Raw (ACR) Processing Module */}
           <div className="dossier-block">
             <div className="dossier-role-row">
-              <span>Adobe Camera Raw (ACR)</span>
+              <span>{t.acr_box_title}</span>
               <span className="dossier-lock-tag">CRS 16.0</span>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
@@ -1611,9 +1642,9 @@ function App() {
           {/* Manual Star Rating & Color Label Override */}
           <div className="dossier-block">
             <div className="dossier-role-row">
-              <span>Rating &amp; Color Label</span>
+              <span>{t.rating_override_title}</span>
               <span className="dossier-lock-tag">
-                {activeAnalysis?.manual_override ? 'USER LEARNED' : 'AI VERDICT'}
+                {activeAnalysis?.manual_override ? t.user_learned : t.ai_verdict}
               </span>
             </div>
             <div className="rating-override-grid">
@@ -1623,7 +1654,7 @@ function App() {
                 disabled={!activeImage}
                 onClick={() => activeImage && setManualRating(activeImage.path, 3)}
               >
-                ★★★ Select
+                {t.select_btn}
               </button>
               <button
                 type="button"
@@ -1631,7 +1662,7 @@ function App() {
                 disabled={!activeImage}
                 onClick={() => activeImage && setManualRating(activeImage.path, 2)}
               >
-                ★★ Maybe
+                {t.maybe_btn}
               </button>
               <button
                 type="button"
@@ -1639,7 +1670,7 @@ function App() {
                 disabled={!activeImage}
                 onClick={() => activeImage && setManualRating(activeImage.path, 1)}
               >
-                ★ Reject
+                {t.reject_btn}
               </button>
             </div>
 
@@ -1669,8 +1700,8 @@ function App() {
         {/* 05. Software Sync & Export Module (ACR / Lightroom / Capture One) */}
         <div className="export-module">
           <div className="dossier-role-row">
-            <span>05 // ACR &amp; LIGHTROOM SYNC</span>
-            <span>{getExportItems().length} READY</span>
+            <span>{t.sec_export_sync}</span>
+            <span>{t.export_ready(getExportItems().length)}</span>
           </div>
 
           <div className="export-tier-selector" role="group" aria-label="Choose tier to export">
@@ -1714,10 +1745,10 @@ function App() {
             onChange={(e) => setSoftwareSync(e.target.value)}
             aria-label="Software Sync Format"
           >
-            <option value="xmp">Sync: ACR 16.0 / Lightroom / Capture One (.XMP)</option>
-            <option value="both">Sync: ACR .XMP Sidecars + CSV Manifest</option>
-            <option value="csv">Sync: CSV Metadata Manifest Only</option>
-            <option value="none">Copy Photos Only (No Sidecars)</option>
+            <option value="xmp">{t.sync_xmp}</option>
+            <option value="both">{t.sync_both}</option>
+            <option value="csv">{t.sync_csv}</option>
+            <option value="none">{t.sync_none}</option>
           </select>
 
           <button
@@ -1726,7 +1757,7 @@ function App() {
             onClick={openExportModal}
             disabled={isProcessing || images.length === 0}
           >
-            <span>Export &amp; Sync ({getExportItems().length})</span>
+            <span>{t.btn_export_sync(getExportItems().length)}</span>
             <span>[ACR &rarr;]</span>
           </button>
         </div>
@@ -1742,13 +1773,13 @@ function App() {
             onClick={() => setViewMode(viewMode === 'gallery' ? 'loupe' : 'gallery')}
             disabled={filteredImages.length === 0}
           >
-            <span>{viewMode === 'gallery' ? 'INSPECT IN LOUPE' : 'RETURN TO GRID'}</span>
+            <span>{viewMode === 'gallery' ? t.btn_transport_loupe : t.btn_transport_grid}</span>
             <span>&#9635;</span>
           </button>
         </div>
 
         <div className="transport-title-group">
-          <span className="transport-label">Parallel GPU Division</span>
+          <span className="transport-label">{t.transport_gpu}</span>
           <span className="transport-sub">{hwStatus.backend}</span>
         </div>
 
@@ -1772,7 +1803,7 @@ function App() {
         </div>
 
         <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-          <span>SELECTS: {counts.selects} | MAYBES: {counts.maybes} | REJECTS: {counts.rejects}</span>
+          <span>{t.counter_summary(counts.selects, counts.maybes, counts.rejects)}</span>
         </div>
       </footer>
 
@@ -1785,17 +1816,13 @@ function App() {
           >
             <div className="dialog-head">
               <span>
-                {dialogMode === 'open'
-                  ? 'SOURCE ROLL // OPEN DIRECTORY'
-                  : `ACR & LIGHTROOM EXPORT // ${getExportItems().length} PHOTOS + .XMP SIDECARS`}
+                {dialogMode === 'open' ? t.dialog_open_title : t.dialog_export_title(getExportItems().length)}
               </span>
               <span>ESC</span>
             </div>
             <div className="dialog-body">
               <label className="dialog-label" htmlFor="folder-path-input">
-                {dialogMode === 'open'
-                  ? 'Select or paste folder path containing JPEG / PNG / TIFF photos:'
-                  : 'Destination folder (Photos + Adobe Camera Raw / Lightroom .XMP sidecars):'}
+                {dialogMode === 'open' ? t.dialog_open_label : t.dialog_export_label}
               </label>
               <div className="dialog-input-row">
                 <input
@@ -1813,7 +1840,7 @@ function App() {
                   style={{ width: 'auto', padding: '0 12px' }}
                   onClick={() => handleBrowseNativeFolder(dialogMode === 'export')}
                 >
-                  Browse...
+                  {t.btn_browse}
                 </button>
               </div>
               <div className="dialog-actions">
@@ -1822,11 +1849,11 @@ function App() {
                   className="nr-btn"
                   onClick={() => setDialogMode(null)}
                 >
-                  <span>Cancel</span>
+                  <span>{t.btn_cancel}</span>
                   <span>[X]</span>
                 </button>
                 <button type="submit" className="nr-btn signal">
-                  <span>{dialogMode === 'open' ? 'Load Folder' : 'Export & Write ACR XMP'}</span>
+                  <span>{dialogMode === 'open' ? t.btn_load_folder : t.btn_export_write}</span>
                   <span>[OK &rarr;]</span>
                 </button>
               </div>
@@ -1846,14 +1873,14 @@ function App() {
                   className={`about-tab-btn ${aboutTab === 'settings' ? 'active' : ''}`}
                   onClick={() => setAboutTab('settings')}
                 >
-                  01 // STUDIO SETTINGS
+                  {t.modal_tab_settings}
                 </button>
                 <button
                   type="button"
                   className={`about-tab-btn ${aboutTab === 'about' ? 'active' : ''}`}
                   onClick={() => setAboutTab('about')}
                 >
-                  02 // ABOUT THIS APP
+                  {t.modal_tab_about}
                 </button>
               </div>
               <button
@@ -1871,8 +1898,8 @@ function App() {
                 {/* Visual Theme Section */}
                 <div className="settings-section">
                   <div className="settings-sec-head">
-                    <span className="settings-section-title">01 // WORKSTATION THEME</span>
-                    <span className="settings-section-sub">Switch between Dark Graphite Cue-Sheet and High-Key Chalk styles:</span>
+                    <span className="settings-section-title">{t.modal_theme_title}</span>
+                    <span className="settings-section-sub">{t.modal_theme_sub}</span>
                   </div>
                   <div className="theme-options-grid">
                     <button
@@ -1880,16 +1907,42 @@ function App() {
                       className={`theme-option-card ${theme === 'dark' ? 'active-card' : ''}`}
                       onClick={() => setTheme('dark')}
                     >
-                      <span className="theme-option-name">☾ DARK GRAPHITE</span>
-                      <span className="theme-option-desc">Recommended for studio darkrooms &amp; colour grading accuracy.</span>
+                      <span className="theme-option-name">{t.theme_dark_card}</span>
+                      <span className="theme-option-desc">{t.theme_dark_card_desc}</span>
                     </button>
                     <button
                       type="button"
                       className={`theme-option-card ${theme === 'light' ? 'active-card' : ''}`}
                       onClick={() => setTheme('light')}
                     >
-                      <span className="theme-option-name">☀ WHITE CHALK</span>
-                      <span className="theme-option-desc">Warm chalk paper background calibrated for location laptop inspections.</span>
+                      <span className="theme-option-name">{t.theme_light_card}</span>
+                      <span className="theme-option-desc">{t.theme_light_card_desc}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Interface Language Section (New!) */}
+                <div className="settings-section">
+                  <div className="settings-sec-head">
+                    <span className="settings-section-title">{t.modal_lang_title}</span>
+                    <span className="settings-section-sub">{t.modal_lang_sub}</span>
+                  </div>
+                  <div className="theme-options-grid">
+                    <button
+                      type="button"
+                      className={`theme-option-card ${lang === 'en' ? 'active-card' : ''}`}
+                      onClick={() => setLang('en')}
+                    >
+                      <span className="theme-option-name">{t.lang_en_card}</span>
+                      <span className="theme-option-desc">{t.lang_en_card_desc}</span>
+                    </button>
+                    <button
+                      type="button"
+                      className={`theme-option-card ${lang === 'th' ? 'active-card' : ''}`}
+                      onClick={() => setLang('th')}
+                    >
+                      <span className="theme-option-name">{t.lang_th_card}</span>
+                      <span className="theme-option-desc">{t.lang_th_card_desc}</span>
                     </button>
                   </div>
                 </div>
@@ -1897,24 +1950,24 @@ function App() {
                 {/* Hardware Telemetry Section */}
                 <div className="settings-section">
                   <div className="settings-sec-head">
-                    <span className="settings-section-title">02 // HARDWARE TELEMETRY &amp; ACCELERATION</span>
-                    <span className="settings-section-sub">Active OpenCL and ONNX Runtime DirectML engine status:</span>
+                    <span className="settings-section-title">{t.modal_hw_title}</span>
+                    <span className="settings-section-sub">{t.modal_hw_sub}</span>
                   </div>
                   <div className="settings-hw-card">
                     <div className="hw-row">
-                      <span className="hw-k">PRIMARY DEVICE</span>
+                      <span className="hw-k">{t.hw_primary}</span>
                       <span className="hw-v highlight">{hwStatus.device_name}</span>
                     </div>
                     <div className="hw-row">
-                      <span className="hw-k">BACKEND PIPELINE</span>
+                      <span className="hw-k">{t.hw_pipeline}</span>
                       <span className="hw-v">{hwStatus.backend}</span>
                     </div>
                     <div className="hw-row">
-                      <span className="hw-k">GPU LOAD / VRAM</span>
+                      <span className="hw-k">{t.hw_gpu_vram}</span>
                       <span className="hw-v">{hwStatus.gpu_util_percent}% GPU | {hwStatus.vram_used_mb}MB / {hwStatus.vram_total_mb}MB</span>
                     </div>
                     <div className="hw-row">
-                      <span className="hw-k">ADAPTIVE AI PROFILE</span>
+                      <span className="hw-k">{t.hw_adaptive}</span>
                       <span className="hw-v">{hwStatus.learning?.style_label || 'Baseline Profile'}</span>
                     </div>
                   </div>
@@ -1923,41 +1976,41 @@ function App() {
                 {/* Keyboard Shortcuts Section */}
                 <div className="settings-section">
                   <div className="settings-sec-head">
-                    <span className="settings-section-title">03 // ESSENTIAL KEYBOARD SHORTCUTS</span>
-                    <span className="settings-section-sub">Speed culling hotkeys for rapid one-handed review:</span>
+                    <span className="settings-section-title">{t.modal_shortcuts_title}</span>
+                    <span className="settings-section-sub">{t.modal_shortcuts_sub}</span>
                   </div>
                   <div className="shortcuts-grid">
-                    <div className="shortcut-item"><kbd className="sc-key">1 - 3</kbd> <span className="sc-desc">Rate Stars (1=Reject, 2=Review, 3=Keep)</span></div>
-                    <div className="shortcut-item"><kbd className="sc-key">P / X</kbd> <span className="sc-desc">Quick Pick (3★) / Quick Reject (1★)</span></div>
-                    <div className="shortcut-item"><kbd className="sc-key">H</kbd> <span className="sc-desc">Toggle Hero Highlight Flag</span></div>
-                    <div className="shortcut-item"><kbd className="sc-key">Space</kbd> <span className="sc-desc">Toggle 100% Loupe Inspection View</span></div>
-                    <div className="shortcut-item"><kbd className="sc-key">← / →</kbd> <span className="sc-desc">Navigate Previous / Next Image</span></div>
-                    <div className="shortcut-item"><kbd className="sc-key">Esc</kbd> <span className="sc-desc">Exit Loupe / Close Dialogs</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">1 - 3</kbd> <span className="sc-desc">{t.sc_1_3}</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">P / X</kbd> <span className="sc-desc">{t.sc_px}</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">H</kbd> <span className="sc-desc">{t.sc_h}</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">Space</kbd> <span className="sc-desc">{t.sc_space}</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">← / →</kbd> <span className="sc-desc">{t.sc_arrows}</span></div>
+                    <div className="shortcut-item"><kbd className="sc-key">Esc</kbd> <span className="sc-desc">{t.sc_esc}</span></div>
                   </div>
                 </div>
 
                 {/* Software Updates Section */}
                 <div className="settings-section">
                   <div className="settings-sec-head">
-                    <span className="settings-section-title">04 // SOFTWARE UPDATES &amp; RELEASE CHANNEL</span>
-                    <span className="settings-section-sub">Automated release checks via GitHub Releases:</span>
+                    <span className="settings-section-title">{t.modal_updater_title}</span>
+                    <span className="settings-section-sub">{t.modal_updater_sub}</span>
                   </div>
                   <div className="settings-updater-card">
                     <div className="hw-row">
-                      <span className="hw-k">INSTALLED BUILD</span>
+                      <span className="hw-k">{t.installed_build_lbl}</span>
                       <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'}</span>
                     </div>
                     <div className="hw-row">
-                      <span className="hw-k">RELEASE CHANNEL</span>
-                      <span className="hw-v">Production Stable (GitHub Releases)</span>
+                      <span className="hw-k">{t.release_channel_lbl}</span>
+                      <span className="hw-v">{t.prod_stable}</span>
                     </div>
                     <div className="hw-row">
-                      <span className="hw-k">AUTO-CHECK ON START</span>
-                      <span className="hw-v status-ok">● Enabled (with Skip / Remind controls)</span>
+                      <span className="hw-k">{t.auto_check_lbl}</span>
+                      <span className="hw-v status-ok">{t.auto_check_val}</span>
                     </div>
                     {skippedVersion && (
                       <div className="hw-row">
-                        <span className="hw-k">SKIPPED VERSION</span>
+                        <span className="hw-k">{t.skipped_version_lbl}</span>
                         <span className="hw-v">
                           v{skippedVersion}{' '}
                           <button
@@ -1966,7 +2019,7 @@ function App() {
                             onClick={clearSkippedVersion}
                             title="Reset skipped release so you get notified again"
                           >
-                            [ RESET / UN-SKIP ]
+                            {t.btn_reset_skip}
                           </button>
                         </span>
                       </div>
@@ -1983,7 +2036,7 @@ function App() {
                         disabled={isCheckingUpdate}
                         onClick={handleManualCheckUpdate}
                       >
-                        <span>{isCheckingUpdate ? 'CHECKING GITHUB...' : 'CHECK FOR UPDATES NOW'}</span>
+                        <span>{isCheckingUpdate ? t.btn_checking_github : t.btn_check_updates_now}</span>
                         <span>[CHECK ⟳]</span>
                       </button>
                     </div>
@@ -1996,7 +2049,7 @@ function App() {
                     className="nr-btn mineral"
                     onClick={() => setAboutTab('about')}
                   >
-                    <span>VIEW ABOUT &amp; SPECS</span>
+                    <span>{t.btn_view_specs}</span>
                     <span>[SPECS ↗]</span>
                   </button>
                   <button
@@ -2004,7 +2057,7 @@ function App() {
                     className="nr-btn"
                     onClick={() => setShowAboutModal(false)}
                   >
-                    <span>CLOSE</span>
+                    <span>{t.btn_close_dialog}</span>
                     <span>[ESC]</span>
                   </button>
                 </div>
@@ -2018,9 +2071,9 @@ function App() {
                     className="about-hero-logo"
                   />
                   <div className="about-hero-text">
-                    <h2 className="about-title">MICMOSE PHOTO CULLER PRO</h2>
-                    <div className="about-version">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'} // PRODUCTION STUDIO RELEASE</div>
-                    <div className="about-author">CREATED BY: NAPHATPHURIN PRACHANTASENA</div>
+                    <h2 className="about-title">{t.about_title}</h2>
+                    <div className="about-version">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'} // {t.about_prod_release}</div>
+                    <div className="about-author">{t.about_author}</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a
                         href="https://github.com/Naphatpuurin/AI-Assist-Photo-Culler"
@@ -2028,7 +2081,7 @@ function App() {
                         rel="noreferrer"
                         className="about-repo-link"
                       >
-                        GITHUB: github.com/Naphatpuurin/AI-Assist-Photo-Culler ↗
+                        {t.about_github}
                       </a>
                     </div>
                   </div>
@@ -2036,28 +2089,20 @@ function App() {
 
                 <div className="about-spec-grid">
                   <div className="about-spec-box">
-                    <div className="spec-label">01 // NEURAL SHARPNESS &amp; EYE FOCUS</div>
-                    <div className="spec-desc">
-                      High-frequency Laplacian variance isolated strictly within detected person &amp; eye bounding boxes. Shallow depth-of-field background bokeh ($f/1.2$–$f/2.8$) never degrades score.
-                    </div>
+                    <div className="spec-label">{t.spec_1_label}</div>
+                    <div className="spec-desc">{t.spec_1_desc}</div>
                   </div>
                   <div className="about-spec-box">
-                    <div className="spec-label">02 // PURE THRESHOLD CULLING (1–10 SCALE)</div>
-                    <div className="spec-desc">
-                      Deterministic evaluation calibrated on real event shoots. Level 5 balanced baseline delivers a proven ~38–40% keeper rate without artificial percentile penalties.
-                    </div>
+                    <div className="spec-label">{t.spec_2_label}</div>
+                    <div className="spec-desc">{t.spec_2_desc}</div>
                   </div>
                   <div className="about-spec-box">
-                    <div className="spec-label">03 // HARDWARE MATRIX ACCELERATION</div>
-                    <div className="spec-desc">
-                      OpenCV OpenCL UMat GPU pipeline (NVIDIA GeForce RTX 5060 / 40 / 30 series) + ONNX Runtime DirectML with transparent multi-core CPU fallback.
-                    </div>
+                    <div className="spec-label">{t.spec_3_label}</div>
+                    <div className="spec-desc">{t.spec_3_desc}</div>
                   </div>
                   <div className="about-spec-box">
-                    <div className="spec-label">04 // 22+ RAW FORMATS &amp; ACR 16.0</div>
-                    <div className="spec-desc">
-                      Canon CR2/CR3, Nikon NEF, Sony ARW, Fuji RAF, Adobe DNG with embedded JPEG previews (10–50ms) and instant `.xmp` sidecar export for Lightroom Classic.
-                    </div>
+                    <div className="spec-label">{t.spec_4_label}</div>
+                    <div className="spec-desc">{t.spec_4_desc}</div>
                   </div>
                 </div>
 
@@ -2067,7 +2112,7 @@ function App() {
                     className="nr-btn mineral"
                     onClick={() => setAboutTab('settings')}
                   >
-                    <span>STUDIO SETTINGS</span>
+                    <span>{t.btn_studio_settings}</span>
                     <span>[SETTINGS]</span>
                   </button>
                   <button
@@ -2075,7 +2120,7 @@ function App() {
                     className="nr-btn"
                     onClick={() => setShowAboutModal(false)}
                   >
-                    <span>CLOSE</span>
+                    <span>{t.btn_close_dialog}</span>
                     <span>[ESC]</span>
                   </button>
                 </div>
@@ -2098,13 +2143,13 @@ function App() {
           <div className="editorial-dialog update-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="dialog-head update-head">
               <div className="update-title-wrap">
-                <span className="update-badge-pill">UPDATE NOTIFICATION</span>
+                <span className="update-badge-pill">{t.updater_notif}</span>
                 <span className="update-title-text">
                   {updateState === 'downloading'
-                    ? 'PULLING RELEASE PACKAGE...'
+                    ? t.updater_pulling
                     : updateState === 'installed'
-                    ? 'INSTALLER LAUNCHED'
-                    : 'NEW PRODUCTION RELEASE AVAILABLE'}
+                    ? t.updater_launched
+                    : t.updater_new_release}
                 </span>
               </div>
               <div className="update-head-right">
@@ -2129,22 +2174,22 @@ function App() {
                 <div className="update-prompt-view">
                   <div className="update-meta-card">
                     <div className="update-meta-row">
-                      <span className="meta-label">RELEASE TAG:</span>
+                      <span className="meta-label">{t.release_tag_lbl}</span>
                       <span className="meta-value tag-name">{updateInfo.tag_name || `v${updateInfo.latest_version}`}</span>
                     </div>
                     <div className="update-meta-row">
-                      <span className="meta-label">RELEASE NAME:</span>
+                      <span className="meta-label">{t.release_name_lbl}</span>
                       <span className="meta-value">{updateInfo.release_name || 'Production Studio Release'}</span>
                     </div>
                     {updateInfo.published_at && (
                       <div className="update-meta-row">
-                        <span className="meta-label">PUBLISHED:</span>
+                        <span className="meta-label">{t.published_lbl}</span>
                         <span className="meta-value">{new Date(updateInfo.published_at).toLocaleString()}</span>
                       </div>
                     )}
                     {updateInfo.asset && (
                       <div className="update-meta-row">
-                        <span className="meta-label">PACKAGE:</span>
+                        <span className="meta-label">{t.package_lbl}</span>
                         <span className="meta-value package-name">
                           {updateInfo.asset.name} ({(updateInfo.asset.size / (1024 * 1024)).toFixed(1)} MB)
                         </span>
@@ -2155,14 +2200,14 @@ function App() {
                   {/* Release Notes */}
                   <div className="update-notes-container">
                     <div className="update-notes-head">
-                      <span>01 // RELEASE NOTES &amp; CHANGELOG</span>
+                      <span>{t.sec_release_notes}</span>
                       <a
                         href={updateInfo.html_url || `https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases`}
                         target="_blank"
                         rel="noreferrer"
                         className="view-github-link"
                       >
-                        VIEW ON GITHUB ↗
+                        {t.view_on_github}
                       </a>
                     </div>
                     <div className="update-notes-body">
@@ -2184,8 +2229,8 @@ function App() {
                       onClick={handleSkipUpdate}
                       title="Don't ask again for this specific release"
                     >
-                      <div className="btn-title">1. SKIP UPDATES</div>
-                      <div className="btn-sub">Never remind me for v{updateInfo.latest_version}</div>
+                      <div className="btn-title">{t.btn_skip_update}</div>
+                      <div className="btn-sub">{t.btn_skip_sub(updateInfo.latest_version)}</div>
                     </button>
 
                     <button
@@ -2194,8 +2239,8 @@ function App() {
                       onClick={handleRemindLater}
                       title="Dismiss for now and remind next session"
                     >
-                      <div className="btn-title">2. REMIND ME LATER</div>
-                      <div className="btn-sub">Snooze prompt for this session</div>
+                      <div className="btn-title">{t.btn_remind_later}</div>
+                      <div className="btn-sub">{t.btn_remind_sub}</div>
                     </button>
 
                     <button
@@ -2204,8 +2249,8 @@ function App() {
                       onClick={handleStartUpdate}
                       title="Download package and launch installer"
                     >
-                      <div className="btn-title">3. UPDATE</div>
-                      <div className="btn-sub">Pull from GitHub &amp; install now ➔</div>
+                      <div className="btn-title">{t.btn_update_now}</div>
+                      <div className="btn-sub">{t.btn_update_sub}</div>
                     </button>
                   </div>
                 </div>
@@ -2216,12 +2261,12 @@ function App() {
                   <div className="progress-banner">
                     <div className="pulse-dot"></div>
                     <span className="progress-status-txt">
-                      PULLING LATEST RELEASE FROM GITHUB REPOSITORIES...
+                      {t.updater_pulling}
                     </span>
                   </div>
 
                   <div className="download-target-info">
-                    <span>TARGET PACKAGE: <strong>{updaterProgress.filename || updateInfo.asset?.name || 'Installer'}</strong></span>
+                    <span>{t.target_package_lbl} <strong>{updaterProgress.filename || updateInfo.asset?.name || 'Installer'}</strong></span>
                   </div>
 
                   {/* Progress Bar */}
@@ -2239,12 +2284,12 @@ function App() {
                       {(updaterProgress.bytes_downloaded / (1024 * 1024)).toFixed(1)} MB / {(updaterProgress.total_bytes / (1024 * 1024)).toFixed(1)} MB
                     </span>
                     <span className="stats-speed">
-                      TRANSFER SPEED: {updaterProgress.speed_mbps || 0} MB/s
+                      {t.transfer_speed_lbl} {updaterProgress.speed_mbps || 0} MB/s
                     </span>
                   </div>
 
                   <div className="download-info-cue">
-                    The installer will automatically unpack into a temporary directory and launch as soon as the download finishes.
+                    {t.download_info_hint}
                   </div>
                 </div>
               )}
@@ -2254,12 +2299,12 @@ function App() {
                   <div className="complete-banner">
                     <span className="check-icon">✓</span>
                     <div className="complete-text">
-                      <h3>INSTALLER LAUNCHED SUCCESSFULLY</h3>
+                      <h3>{t.installer_success_title}</h3>
                       <p>
-                        The setup wizard for <strong>{updaterProgress.filename || updateInfo.asset?.name || 'MicMose Photo Culler Pro'}</strong> is running.
+                        {t.installer_success_desc(updaterProgress.filename || updateInfo.asset?.name || 'MicMose Photo Culler Pro')}
                       </p>
                       <p className="complete-sub">
-                        Please exit this running instance to allow the installer to replace binary files without file locks.
+                        {t.installer_exit_hint}
                       </p>
                     </div>
                   </div>
@@ -2270,7 +2315,7 @@ function App() {
                       className="nr-btn vermilion"
                       onClick={handleQuitApp}
                     >
-                      <span>EXIT &amp; CLOSE APP TO COMPLETE UPDATE</span>
+                      <span>{t.btn_exit_close_app}</span>
                       <span>[EXIT NOW ✕]</span>
                     </button>
                     <button
@@ -2278,7 +2323,7 @@ function App() {
                       className="nr-btn"
                       onClick={() => setShowUpdateModal(false)}
                     >
-                      <span>KEEP RUNNING &amp; CLOSE DIALOG</span>
+                      <span>{t.btn_keep_running}</span>
                       <span>[ESC]</span>
                     </button>
                   </div>
@@ -2290,7 +2335,7 @@ function App() {
                   <div className="error-banner">
                     <span className="err-icon">⚠</span>
                     <div className="err-text">
-                      <h3>UPDATE DOWNLOAD FAILED</h3>
+                      <h3>{t.update_failed_title}</h3>
                       <p>{updateError || 'An error occurred while pulling the update package.'}</p>
                     </div>
                   </div>
@@ -2301,7 +2346,7 @@ function App() {
                       className="nr-btn mineral"
                       onClick={handleStartUpdate}
                     >
-                      <span>RETRY DOWNLOAD</span>
+                      <span>{t.btn_retry_download}</span>
                       <span>[RETRY ⟳]</span>
                     </button>
                     <a
@@ -2311,7 +2356,7 @@ function App() {
                       className="nr-btn"
                       style={{ textDecoration: 'none', display: 'inline-flex' }}
                     >
-                      <span>DOWNLOAD FROM GITHUB IN BROWSER</span>
+                      <span>{t.btn_download_browser}</span>
                       <span>[BROWSER ↗]</span>
                     </a>
                     <button
@@ -2319,7 +2364,7 @@ function App() {
                       className="nr-btn"
                       onClick={() => setShowUpdateModal(false)}
                     >
-                      <span>CLOSE</span>
+                      <span>{t.btn_close_dialog}</span>
                       <span>[ESC]</span>
                     </button>
                   </div>
