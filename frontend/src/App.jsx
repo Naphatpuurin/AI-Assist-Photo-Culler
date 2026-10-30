@@ -97,6 +97,7 @@ function App() {
   const [focusLevel, setFocusLevel] = useState(5);
   const [requireSubjects, setRequireSubjects] = useState(true);
   const [rejectClosedEyes, setRejectClosedEyes] = useState(false);
+  const [rejectHeavyNoise, setRejectHeavyNoise] = useState(false);
   const [rejectExposure, setRejectExposure] = useState(true);
   const [rejectMisfires, setRejectMisfires] = useState(true);
   const [rejectDocuments, setRejectDocuments] = useState(true);
@@ -365,7 +366,7 @@ function App() {
   }, [fetchHardwareStatus]);
 
   // Immediate local rating recalculation for instant UI feedback on slider change
-  const recomputeLocalRatings = useCallback((rawMap, lvl, reqSubj, rejExp, rejMis, rejDoc, rejEyes) => {
+  const recomputeLocalRatings = useCallback((rawMap, lvl, reqSubj, rejExp, rejMis, rejDoc, rejEyes, rejNoise) => {
     const sTable = { 1: 8.0, 2: 15.0, 3: 25.0, 4: 38.0, 5: 50.0, 6: 75.0, 7: 100.0, 8: 125.0, 9: 150.0, 10: 200.0 };
     const eTable = { 1: 115.0, 2: 105.0, 3: 95.0, 4: 82.0, 5: 70.0, 6: 62.0, 7: 55.0, 8: 48.0, 9: 42.0, 10: 35.0 };
     const sReq = sTable[lvl] || 50.0;
@@ -377,12 +378,14 @@ function App() {
       const exp = it.exposure || 127.0;
       const subjs = it.subjects_detected || 0;
       const eye = it.eye_status || 'no_subject';
+      const isNoisy = !!it.is_noisy;
 
-      const isHopeless = s < 5.0 || Math.abs(exp - 127.0) > 120.0 || (rejMis && it.is_misfire) || (rejDoc && it.is_document) || (rejEyes && eye === 'closed');
+      const isHopeless = s < 5.0 || Math.abs(exp - 127.0) > 120.0 || (rejMis && it.is_misfire) || (rejDoc && it.is_document) || (rejEyes && eye === 'closed') || (rejNoise && isNoisy);
       const isSharp = s >= sReq;
       const isWellExp = rejExp ? Math.abs(exp - 127.0) <= eMargin : true;
       const hasSubj = reqSubj ? subjs > 0 : true;
       const eyesOk = rejEyes ? eye !== 'closed' : true;
+      const noiseOk = rejNoise ? !isNoisy : true;
 
       let ai_rating = 2;
       let cull_status = 'maybe';
@@ -392,7 +395,7 @@ function App() {
         ai_rating = 1;
         cull_status = 'reject';
         color_label = 'red';
-      } else if (isSharp && isWellExp && hasSubj && eyesOk) {
+      } else if (isSharp && isWellExp && hasSubj && eyesOk && noiseOk) {
         ai_rating = 3;
         cull_status = 'select';
         color_label = it.is_highlight ? 'blue' : 'green';
@@ -428,7 +431,8 @@ function App() {
           reject_exposure: rejectExposure,
           reject_misfires: rejectMisfires,
           reject_documents: rejectDocuments,
-          reject_closed_eyes: rejectClosedEyes
+          reject_closed_eyes: rejectClosedEyes,
+          reject_heavy_noise: rejectHeavyNoise
         })
       });
       const data = await response.json();
@@ -440,7 +444,7 @@ function App() {
     } catch (err) {
       console.error('Batch post-process failed:', err);
     }
-  }, [stackTimeWindowSec, cullToTargetEnabled, targetKeepPercent, autoHighlightsPercent, focusLevel, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes]);
+  }, [stackTimeWindowSec, cullToTargetEnabled, targetKeepPercent, autoHighlightsPercent, focusLevel, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes, rejectHeavyNoise]);
 
   const matchesFilter = useCallback((img) => {
     const info = analysisData[img.path];
@@ -477,6 +481,8 @@ function App() {
         return info.duplicate_status === 'near_duplicate';
       case 'creative_variations':
         return info.duplicate_status === 'creative_variation';
+      case 'heavy_noise':
+        return Boolean(info.is_noisy);
       default:
         return true;
     }
@@ -497,6 +503,7 @@ function App() {
     closed_eyes: images.filter(i => analysisData[i.path]?.eye_status === 'closed').length,
     cant_tell_eyes: images.filter(i => analysisData[i.path]?.eye_status === 'cant_tell').length,
     blurry: images.filter(i => analysisData[i.path]?.is_blurry).length,
+    heavy_noise: images.filter(i => analysisData[i.path]?.is_noisy).length,
     exposure_issues: images.filter(i => {
       const ex = analysisData[i.path]?.exposure_issue;
       return ex && ex !== 'none';
@@ -516,7 +523,8 @@ function App() {
       reject_exposure: rejectExposure,
       reject_misfires: rejectMisfires,
       reject_documents: rejectDocuments,
-      reject_closed_eyes: rejectClosedEyes
+      reject_closed_eyes: rejectClosedEyes,
+      reject_heavy_noise: rejectHeavyNoise
     });
     try {
       const response = await apiFetch(`/api/analyze?path=${encodeURIComponent(path)}&${params.toString()}`);
@@ -526,7 +534,7 @@ function App() {
     } catch (err) {
       console.error(`Failed to analyze ${path}`, err);
     }
-  }, [analysisData, focusLevel, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes, fetchHardwareStatus]);
+  }, [analysisData, focusLevel, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes, rejectHeavyNoise, fetchHardwareStatus]);
 
   // Manual Star Rating Override + Learning AI Feedback Loop
   const setManualRating = useCallback(async (path, newRating, e) => {
@@ -762,7 +770,8 @@ function App() {
             reject_exposure: rejectExposure,
             reject_misfires: rejectMisfires,
             reject_documents: rejectDocuments,
-            reject_closed_eyes: rejectClosedEyes
+            reject_closed_eyes: rejectClosedEyes,
+            reject_heavy_noise: rejectHeavyNoise
           })
         });
         const data = await response.json();
@@ -986,7 +995,7 @@ function App() {
                   const lv = parseInt(e.target.value, 10);
                   setFocusLevel(lv);
                   if (Object.keys(analysisData).length > 0) {
-                    setAnalysisData(prev => recomputeLocalRatings(prev, lv, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes));
+                    setAnalysisData(prev => recomputeLocalRatings(prev, lv, requireSubjects, rejectExposure, rejectMisfires, rejectDocuments, rejectClosedEyes, rejectHeavyNoise));
                     runBatchPostProcess(analysisData, cullToTargetEnabled, targetKeepPercent, autoHighlightsPercent, stackTimeWindowSec, lv);
                   }
                 }}
@@ -1051,6 +1060,15 @@ function App() {
                     checked={rejectClosedEyes}
                     disabled={isProcessing}
                     onChange={(e) => setRejectClosedEyes(e.target.checked)}
+                  />
+                </label>
+                <label className="subject-toggle-row">
+                  <span>{t.reject_heavy_noise}</span>
+                  <input
+                    type="checkbox"
+                    checked={rejectHeavyNoise}
+                    disabled={isProcessing}
+                    onChange={(e) => setRejectHeavyNoise(e.target.checked)}
                   />
                 </label>
                 <label className="subject-toggle-row">
@@ -1177,6 +1195,18 @@ function App() {
                   <span className="tier-code">EYE-</span>
                   <span className="tier-label">{t.filter_closed_eyes}</span>
                   <span className="tier-count">{counts.closed_eyes}</span>
+                </button>
+              </li>
+              <li className="tier-item">
+                <button
+                  type="button"
+                  className="tier-btn"
+                  aria-current={activeFilter === 'heavy_noise' ? 'true' : 'false'}
+                  onClick={() => { setActiveFilter('heavy_noise'); setSelectedImageIndex(0); }}
+                >
+                  <span className="tier-code">GRAIN</span>
+                  <span className="tier-label">{t.filter_heavy_noise}</span>
+                  <span className="tier-count">{counts.heavy_noise}</span>
                 </button>
               </li>
               <li className="tier-item">
@@ -1652,6 +1682,32 @@ function App() {
             </div>
             <div className="dossier-sub">
               WB: {activeAnalysis?.acr?.white_balance || 'As Shot'} ({activeAnalysis?.acr?.temperature || 'Auto'})
+            </div>
+          </div>
+
+          {/* Sensor Noise & Grain Telemetry */}
+          <div className="dossier-block">
+            <div className="dossier-role-row">
+              <span>{t.dossier_sec_noise}</span>
+              <span className={`dossier-lock-tag ${activeAnalysis?.is_noisy ? 'tag-warn' : ''}`}>
+                {activeAnalysis?.noise_level ? t[`noise_level_${activeAnalysis.noise_level}`] || activeAnalysis.noise_level.toUpperCase() : 'SNR --'}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+              <div><strong>{t.lbl_noise_score}:</strong> {activeAnalysis?.noise_score ?? '--'}/100</div>
+              <div><strong>{t.lbl_snr}:</strong> {activeAnalysis?.snr_db ? `${activeAnalysis.snr_db} dB` : '-- dB'}</div>
+              <div><strong>{t.lbl_noise_sigma}:</strong> {activeAnalysis?.noise_sigma ? `σ ${activeAnalysis.noise_sigma}` : '--'}</div>
+              <div><strong>{t.lbl_grain_status}:</strong> {activeAnalysis?.is_noisy ? t.grain_heavy : t.grain_clean}</div>
+            </div>
+            <div style={{ marginTop: '6px', height: '4px', background: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${activeAnalysis?.noise_score || 0}%`,
+                  background: (activeAnalysis?.noise_score || 0) > 65 ? '#E06C75' : (activeAnalysis?.noise_score || 0) > 35 ? '#E5C07B' : '#98C379',
+                  transition: 'width 0.3s ease'
+                }}
+              />
             </div>
           </div>
 

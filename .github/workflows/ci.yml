@@ -33,3 +33,7 @@ jobs:
         cd frontend
         npm ci
         npm run build
+
+    - name: Run Core Logic & Security Tests
+      run: |
+        python tests/test_core_logic.py

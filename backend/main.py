@@ -136,6 +136,7 @@ class BatchAnalyzeRequest(BaseModel):
     reject_misfires: bool = True
     reject_documents: bool = True
     reject_closed_eyes: bool = True
+    reject_heavy_noise: bool = False
 
 
 class BatchPostProcessRequest(BaseModel):
@@ -150,6 +151,7 @@ class BatchPostProcessRequest(BaseModel):
     reject_misfires: bool = True
     reject_documents: bool = True
     reject_closed_eyes: bool = False
+    reject_heavy_noise: bool = False
 
 
 class FeedbackRequest(BaseModel):
@@ -372,7 +374,8 @@ def analyze_image(
     reject_exposure: bool = True,
     reject_misfires: bool = True,
     reject_documents: bool = True,
-    reject_closed_eyes: bool = True
+    reject_closed_eyes: bool = True,
+    reject_heavy_noise: bool = False
 ):
     if not os.path.exists(path):
         raise HTTPException(status_code=404, detail="Image not found")
@@ -388,7 +391,8 @@ def analyze_image(
             reject_exposure=reject_exposure,
             reject_misfires=reject_misfires,
             reject_documents=reject_documents,
-            reject_closed_eyes=reject_closed_eyes
+            reject_closed_eyes=reject_closed_eyes,
+            reject_heavy_noise=reject_heavy_noise
         )
         return sanitize_for_json(results)
     except Exception as e:
@@ -423,7 +427,8 @@ def analyze_batch(request: BatchAnalyzeRequest):
                 reject_exposure=request.reject_exposure,
                 reject_misfires=request.reject_misfires,
                 reject_documents=request.reject_documents,
-                reject_closed_eyes=request.reject_closed_eyes
+                reject_closed_eyes=request.reject_closed_eyes,
+                reject_heavy_noise=request.reject_heavy_noise
             )
 
         batch_results = {}
@@ -465,7 +470,8 @@ def post_process_batch(request: BatchPostProcessRequest):
             reject_exposure=request.reject_exposure,
             reject_misfires=request.reject_misfires,
             reject_documents=request.reject_documents,
-            reject_closed_eyes=request.reject_closed_eyes
+            reject_closed_eyes=request.reject_closed_eyes,
+            reject_heavy_noise=request.reject_heavy_noise
         )
         return sanitize_for_json({"status": "success", "analysis_map": updated_map})
     except Exception as e:

@@ -29,6 +29,7 @@ export const translations = {
     strict_closed_eye: 'Strict Closed-Eye Reject',
     reject_exposure: 'Reject Exposure Issues',
     reject_misfires: 'Reject Misfires & Documents',
+    reject_heavy_noise: 'Reject Heavy Sensor Noise',
 
     // Focus level descriptions
     focus_levels: {
@@ -64,6 +65,7 @@ export const translations = {
     filter_creative_variations: 'Creative Variations',
     filter_exposure_issues: 'Exposure Issues',
     filter_misfires: 'Misfires / Docs',
+    filter_heavy_noise: 'Heavy Noise / Grain',
 
     // Action button
     btn_run_parallel: '▶ Run Parallel AI Culling',
@@ -140,6 +142,18 @@ export const translations = {
     lbl_artist: 'ARTIST:',
     lbl_author: 'AUTHOR:',
     acr_box_title: 'Adobe Camera Raw (ACR)',
+    dossier_sec_noise: 'SENSOR NOISE & GRAIN',
+    lbl_noise_score: 'NOISE INDEX',
+    lbl_snr: 'EST. SNR',
+    lbl_noise_sigma: 'SIGMA',
+    lbl_grain_status: 'GRAIN',
+    grain_clean: 'CLEAN',
+    grain_heavy: 'HEAVY',
+    noise_level_clean: 'PRISTINE',
+    noise_level_low: 'LOW GRAIN',
+    noise_level_moderate: 'MODERATE',
+    noise_level_heavy: 'HEAVY NOISE',
+    noise_level_severe: 'SEVERE GRAIN',
     rating_override_title: 'Rating & Color Label',
     user_learned: 'USER LEARNED',
     ai_verdict: 'AI VERDICT',
@@ -308,6 +322,7 @@ export const translations = {
     strict_closed_eye: 'คัดทิ้งภาพที่หลับตาโดยเด็ดขาด',
     reject_exposure: 'คัดทิ้งภาพที่แสงมืด/สว่างเกินไป',
     reject_misfires: 'คัดทิ้งภาพชัตเตอร์ลั่นพลาด/เอกสาร',
+    reject_heavy_noise: 'คัดทิ้งภาพที่มีสัญญาณรบกวนสูงมาก (Heavy Noise)',
 
     // Focus level descriptions
     focus_levels: {
@@ -343,6 +358,7 @@ export const translations = {
     filter_creative_variations: 'ภาพที่มีการเปลี่ยนมุมกล้อง',
     filter_exposure_issues: 'ปัญหาเรื่องแสง (มืด/สว่างจ้า)',
     filter_misfires: 'ชัตเตอร์ลั่นพลาด / ถ่ายเอกสาร',
+    filter_heavy_noise: 'สัญญาณรบกวนสูง (Noise/Grain)',
 
     // Action button
     btn_run_parallel: '▶ เริ่มคัดเลือกภาพด้วย AI ขนาน',
@@ -419,6 +435,18 @@ export const translations = {
     lbl_artist: 'ศิลปิน:',
     lbl_author: 'ผู้สร้าง:',
     acr_box_title: 'Adobe Camera Raw (ACR)',
+    dossier_sec_noise: 'สัญญาณรบกวนและเกรนภาพ (NOISE)',
+    lbl_noise_score: 'ดัชนีนอยส์',
+    lbl_snr: 'อัตราส่วน SNR',
+    lbl_noise_sigma: 'ค่า SIGMA',
+    lbl_grain_status: 'ระดับเกรน',
+    grain_clean: 'คมชัด ไร้นอยส์',
+    grain_heavy: 'เกรนสูง',
+    noise_level_clean: 'คมชัดใส (Clean)',
+    noise_level_low: 'นอยส์ต่ำ (Low)',
+    noise_level_moderate: 'นอยส์ปานกลาง (Moderate)',
+    noise_level_heavy: 'นอยส์สูง (Heavy)',
+    noise_level_severe: 'นอยส์รุนแรง (Severe)',
     rating_override_title: 'คะแนนดาวและป้ายสี',
     user_learned: 'AI เรียนรู้จากคุณ',
     ai_verdict: 'ผลประเมิน AI',

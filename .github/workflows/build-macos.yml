@@ -37,7 +37,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r backend/requirements.txt
-          pip install pyinstaller pywebview pyobjc
+          pip install pyinstaller "pywebview[cocoa]"
 
       - name: Build macOS App Bundle (.app)
         run: |
@@ -47,9 +47,15 @@ jobs:
       - name: Package into macOS Disk Image (.dmg)
         run: |
           mkdir -p release
+          APP_PATH=$(find backend/dist -name "*.app" -maxdepth 2 | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Could not locate .app bundle in backend/dist"
+            exit 1
+          fi
+          echo "Packaging application from: $APP_PATH"
           hdiutil create \
             -volname "MicMose Photo Culler Pro" \
-            -srcfolder "backend/dist/MicMose Photo Culler Pro.app" \
+            -srcfolder "$APP_PATH" \
             -ov -format UDZO \
             "release/MicMose-Photo-Culler-Pro-macOS.dmg"
 

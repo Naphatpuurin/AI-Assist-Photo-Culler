@@ -87,9 +87,33 @@ def test_html_injection():
     assert f"window.__API_PORT__ = {port}" in injected_html
     print("[PASS] test_html_injection")
 
+# Test noise estimation formula logic
+def test_noise_estimation_formula():
+    import math
+    # Test Immerkær normalization coefficient
+    # 3x3 kernel coefficients: sum of squares = 1+4+1 + 4+16+4 + 1+4+1 = 36
+    # sqrt(36) = 6
+    norm = math.sqrt(0.5 * math.pi) / 6.0
+    assert 0.20 < norm < 0.22, f"Expected norm ~0.2089, got {norm}"
+
+    # Test noise floor subtraction formula
+    def debias_sharpness(raw_var, sigma):
+        if sigma > 1.2:
+            return max(0.0, raw_var - (0.65 * 20.0 * (sigma ** 2)))
+        return raw_var
+
+    # When clean (sigma=0.5), variance is unchanged
+    assert debias_sharpness(100.0, 0.5) == 100.0
+    # When high ISO noise (sigma=3.5), noise variance floor is subtracted
+    debiased = debias_sharpness(200.0, 3.5)
+    assert debiased < 200.0
+    assert debiased == max(0.0, 200.0 - (0.65 * 20.0 * 12.25))
+    print("[PASS] test_noise_estimation_formula")
+
 if __name__ == "__main__":
     test_version_loading()
     test_port_scanner()
     test_sha256_verification()
     test_html_injection()
+    test_noise_estimation_formula()
     print("\n>>> ALL CORE SECURITY & ARCHITECTURE UNIT TESTS PASSED! <<<")

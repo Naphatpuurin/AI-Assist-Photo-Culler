@@ -354,21 +354,120 @@ class AIEngine:
             final_boxes.append([float(coord) for coord in xyxy_list[int(idx)]])
         return final_boxes
 
-    def calculate_roi_sharpness(self, img_gray, bbox):
+    def estimate_sensor_noise(self, img_gray):
+        """
+        Estimate high-frequency sensor noise variance and standard deviation using
+        Immerkær Fast Noise Estimation coupled with flat-patch minimum variance.
+        Returns:
+            sigma_noise (float): Estimated noise standard deviation (0.0 - 255.0 scale)
+            noise_score (float): Normalized 0.0 (pristine) to 100.0 (extreme sensor noise)
+            noise_level (str): 'clean' | 'low' | 'moderate' | 'heavy' | 'severe'
+            snr_db (float): Estimated signal-to-noise ratio in decibels
+            is_noisy (bool): True if noise is heavy or severe
+        """
+        if img_gray is None or img_gray.size < 1000:
+            return 0.0, 0.0, "clean", 45.0, False
+
+        h, w = img_gray.shape[:2]
+
+        # 1. Immerkær fast noise convolution kernel:
+        # [[ 1, -2,  1],
+        #  [-2,  4, -2],
+        #  [ 1, -2,  1]]
+        kernel = np.array([[ 1, -2,  1],
+                           [-2,  4, -2],
+                           [ 1, -2,  1]], dtype=np.float32)
+
+        # Subsample large preview frames for instant sub-millisecond execution if > 1200px
+        if max(h, w) > 1200:
+            scale = 1200.0 / max(h, w)
+            sample_gray = cv2.resize(img_gray, (0, 0), fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+        else:
+            sample_gray = img_gray
+
+        sh, sw = sample_gray.shape[:2]
+        if sh < 10 or sw < 10:
+            return 0.0, 0.0, "clean", 45.0, False
+
+        # Convolve with Immerkær kernel
+        filtered = cv2.filter2D(sample_gray.astype(np.float32), -1, kernel)
+        inner = np.abs(filtered[2:sh-2, 2:sw-2])
+        if inner.size == 0:
+            return 0.0, 0.0, "clean", 45.0, False
+
+        # Median Absolute Deviation (MAD) is immune to sharp object edges
+        med_val = float(np.median(inner))
+        sigma_immerkaer = med_val / (0.6745 * 6.0)
+
+        # 2. Flat patch minimum variance check (prevents texture-dense images from inflating noise)
+        patch_size = 24
+        patches_h = sh // patch_size
+        patches_w = sw // patch_size
+        if patches_h >= 2 and patches_w >= 2:
+            stds = []
+            for r in range(patches_h):
+                for c in range(patches_w):
+                    patch = sample_gray[r*patch_size:(r+1)*patch_size, c*patch_size:(c+1)*patch_size]
+                    stds.append(float(np.std(patch)))
+            sigma_patch = float(np.percentile(stds, 10))
+            sigma_noise = min(sigma_immerkaer, sigma_patch)
+        else:
+            sigma_noise = sigma_immerkaer
+
+        sigma_noise = max(0.0, round(float(sigma_noise), 2))
+
+        # Mean signal for SNR computation
+        mean_signal = max(10.0, float(np.mean(sample_gray)))
+        snr_db = round(20.0 * np.log10(mean_signal / max(0.2, sigma_noise)), 1)
+        snr_db = float(np.clip(snr_db, 10.0, 50.0))
+
+        # Normalized noise score: 0.0 to 100.0
+        noise_score = round(float(np.clip((sigma_noise / 10.0) * 100.0, 0.0, 100.0)), 1)
+
+        if sigma_noise < 1.8:
+            noise_level = "clean"
+            is_noisy = False
+        elif sigma_noise < 3.8:
+            noise_level = "low"
+            is_noisy = False
+        elif sigma_noise < 6.8:
+            noise_level = "moderate"
+            is_noisy = False
+        elif sigma_noise < 10.5:
+            noise_level = "heavy"
+            is_noisy = True
+        else:
+            noise_level = "severe"
+            is_noisy = True
+
+        return sigma_noise, noise_score, noise_level, snr_db, is_noisy
+
+    def calculate_roi_sharpness(self, img_gray, bbox, noise_sigma=0.0):
         x1, y1, x2, y2 = map(int, bbox)
         x1, y1 = max(0, x1), max(0, y1)
         x2, y2 = min(img_gray.shape[1], x2), min(img_gray.shape[0], y2)
         roi = img_gray[y1:y2, x1:x2]
         if roi.size == 0:
             return 0.0
+        
+        raw_val = 0.0
         if self.opencl_active:
             try:
                 u_roi = cv2.UMat(roi)
                 u_lap = cv2.Laplacian(u_roi, cv2.CV_32F)
-                return float(np.var(u_lap.get()))
+                raw_val = float(np.var(u_lap.get()))
             except Exception:
-                pass
-        return float(cv2.Laplacian(roi, cv2.CV_64F).var())
+                raw_val = float(cv2.Laplacian(roi, cv2.CV_64F).var())
+        else:
+            raw_val = float(cv2.Laplacian(roi, cv2.CV_64F).var())
+
+        # High-ISO Noise Floor Subtraction:
+        # Prevents high-frequency sensor noise/grain from masquerading as tack-sharp focus
+        if noise_sigma > 1.2:
+            noise_lap_bias = 0.65 * 20.0 * (noise_sigma ** 2)
+            raw_val = max(0.0, raw_val - noise_lap_bias)
+
+        return raw_val
 
     def map_sharpness_to_level_1_10(self, raw_sharpness: float) -> float:
         """
@@ -816,7 +915,8 @@ class AIEngine:
         reject_exposure: bool = True,
         reject_misfires: bool = True,
         reject_documents: bool = True,
-        reject_closed_eyes: bool = True
+        reject_closed_eyes: bool = True,
+        reject_heavy_noise: bool = False
     ):
         """
         Analyze a single image using Level 1-10 Subject Focus (Default Level 5 = balanced).
@@ -830,6 +930,11 @@ class AIEngine:
             "focus_score": 50,         # 0 - 100 legacy compatibility
             "eye_focus_score": 5.0,    # 1.0 - 10.0 scale
             "eye_status": "no_subject",
+            "noise_score": 0.0,        # 0.0 - 100.0 scale
+            "noise_level": "clean",    # 'clean' | 'low' | 'moderate' | 'heavy' | 'severe'
+            "noise_sigma": 0.0,
+            "snr_db": 45.0,
+            "is_noisy": False,
             "exposure": 0.0,
             "exposure_issue": "none",
             "is_blurry": False,
@@ -882,6 +987,14 @@ class AIEngine:
             img, img_gray, exposure, luma_std, whole_sharpness = self.gpu_prepare_and_analyze_matrices(img_raw)
             results["exposure"] = round(exposure, 1)
 
+            # 1b. Fast Sensor Noise & High-ISO Grain Estimation
+            sigma_noise, noise_score, noise_level, snr_db, is_noisy = self.estimate_sensor_noise(img_gray)
+            results["noise_sigma"] = sigma_noise
+            results["noise_score"] = noise_score
+            results["noise_level"] = noise_level
+            results["snr_db"] = snr_db
+            results["is_noisy"] = is_noisy
+
             # 2. Extract Full Camera/Lens/Shutter/F-Stop/ISO/Time/Author/Artist + Adobe Camera Raw (ACR) telemetry
             meta = self.extract_full_exif_and_acr_data(image_path, img, img_gray)
             results.update({
@@ -929,14 +1042,18 @@ class AIEngine:
                     "w": round(float(((bx2 - bx1) / iw) * 100.0), 2),
                     "h": round(float(((by2 - by1) / ih) * 100.0), 2)
                 })
-                subj_s = self.calculate_roi_sharpness(img_gray, box)
+                subj_s = self.calculate_roi_sharpness(img_gray, box, noise_sigma=sigma_noise)
                 if subj_s > best_sharpness:
                     best_sharpness = subj_s
 
             results["subject_boxes"] = norm_boxes
 
             if best_sharpness == 0.0:
-                best_sharpness = whole_sharpness
+                if sigma_noise > 1.2:
+                    noise_lap_bias = 0.65 * 20.0 * (sigma_noise ** 2)
+                    best_sharpness = max(0.0, whole_sharpness - noise_lap_bias)
+                else:
+                    best_sharpness = whole_sharpness
 
             results["sharpness"] = round(best_sharpness, 1)
             measured_level = self.map_sharpness_to_level_1_10(best_sharpness)
@@ -1008,6 +1125,8 @@ class AIEngine:
                 flags.append("Underexposed" if results["exposure_issue"] == "underexposed" else "Overexposed")
             if not is_sharp:
                 flags.append("Soft Focus")
+            if is_noisy:
+                flags.append("Heavy Noise" if noise_level == "heavy" else "Severe Grain")
             if eye_status == "closed":
                 flags.append("Closed Eyes")
             elif eye_status == "cant_tell" and len(boxes) > 0:
@@ -1019,21 +1138,24 @@ class AIEngine:
 
             # Composite Quality Rank Score (0 - 100)
             exposure_penalty = abs(exposure - exp_center) * 0.18
+            noise_penalty = (noise_score * 0.12) if noise_score > 35.0 else 0.0
             eye_bonus = 8.0 if eye_status == "open" else (-15.0 if eye_status == "closed" else 0.0)
             subject_bonus = 8.0 if len(boxes) > 0 else (-10.0 if require_subjects else 0.0)
             defect_penalty = (45.0 if is_mis else 0.0) + (40.0 if is_doc else 0.0)
 
-            rank_score = (measured_level * 10.0) + eye_bonus + subject_bonus - exposure_penalty - defect_penalty
+            rank_score = (measured_level * 10.0) + eye_bonus + subject_bonus - exposure_penalty - defect_penalty - noise_penalty
             results["quality_rank_score"] = round(float(np.clip(rank_score, 0.0, 100.0)), 2)
 
             # Proven 3-Star Verdict Logic (so all sharp, well-exposed shots get 3★ Selects!)
             is_well_exposed = (results["exposure_issue"] == "none") if reject_exposure else True
             has_subjects = (len(boxes) > 0) if require_subjects else True
             eyes_ok = (eye_status != "closed") if reject_closed_eyes else True
+            noise_ok = (not is_noisy) if reject_heavy_noise else True
 
             is_hopeless = (
                 (reject_misfires and is_mis)
                 or (reject_documents and is_doc)
+                or (reject_heavy_noise and is_noisy)
                 or best_sharpness < 4.5
                 or abs(exposure - 127.0) > 118.0
                 or (reject_closed_eyes and eye_status == "closed")
@@ -1043,7 +1165,7 @@ class AIEngine:
                 results["ai_rating"] = 1
                 results["cull_status"] = "reject"
                 results["color_label"] = "red"
-            elif is_sharp and is_well_exposed and has_subjects and eyes_ok:
+            elif is_sharp and is_well_exposed and has_subjects and eyes_ok and noise_ok:
                 results["ai_rating"] = 3
                 results["cull_status"] = "select"
                 results["color_label"] = "green"
@@ -1095,7 +1217,8 @@ class AIEngine:
         reject_exposure: bool = True,
         reject_misfires: bool = True,
         reject_documents: bool = True,
-        reject_closed_eyes: bool = False
+        reject_closed_eyes: bool = False,
+        reject_heavy_noise: bool = False
     ):
         """
         Groups burst sequences into Auto-Stacks, tags Near-Duplicates vs Creative Variations,
@@ -1186,19 +1309,22 @@ class AIEngine:
 
             is_mis = bool(it.get("is_misfire"))
             is_doc = bool(it.get("is_document"))
+            is_noisy = bool(it.get("is_noisy"))
 
-            # Hopeless failsafe: extremely blurry (< 5.0), severe over/under exposure, or misfire
+            # Hopeless failsafe: extremely blurry (< 5.0), severe over/under exposure, misfire, or heavy noise
             is_hopeless = (
                 s < 5.0
                 or abs(exp - 127.0) > 120.0
                 or (reject_misfires and is_mis)
                 or (reject_documents and is_doc)
                 or (reject_closed_eyes and eye_status == "closed")
+                or (reject_heavy_noise and is_noisy)
             )
             is_sharp = s >= sharpness_req
             is_well_exp = abs(exp - exp_center) <= exp_margin if reject_exposure else True
             has_sub = (subjs > 0) if require_subjects else True
             eyes_ok = (eye_status != "closed") if reject_closed_eyes else True
+            noise_ok = (not is_noisy) if reject_heavy_noise else True
 
             base_flags = [f for f in it.get("flags", []) if f not in ("Soft Focus", "Blurry")]
 
@@ -1209,7 +1335,7 @@ class AIEngine:
                 it["is_blurry"] = s < 5.0
                 if it["is_blurry"]:
                     base_flags.append("Soft Focus")
-            elif is_sharp and is_well_exp and has_sub and eyes_ok:
+            elif is_sharp and is_well_exp and has_sub and eyes_ok and noise_ok:
                 it["ai_rating"] = 3
                 it["cull_status"] = "select"
                 it["color_label"] = "green"

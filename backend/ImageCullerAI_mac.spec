@@ -16,9 +16,10 @@ a = Analysis(
         ('yolov8n.onnx', '.'),
         ('yolov8n.pt', '.'),
         ('app.icns', '.'),
-        ('app.png', '.')
+        ('app.png', '.'),
+        ('version.json', '.')
     ] + ort_datas + rawpy_datas,
-    hiddenimports=['onnxruntime', 'rawpy', 'exifread', 'raw_utils', 'pywebview'],
+    hiddenimports=['onnxruntime', 'rawpy', 'exifread', 'raw_utils', 'pywebview', 'objc', 'WebKit', 'AppKit', 'Foundation'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

@@ -106,7 +106,8 @@ jobs:
           chmod +x AppDir/AppRun
 
           # Download and extract appimagetool (avoids FUSE requirements on CI)
-          curl -sL -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          curl -fSL -o appimagetool https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage || \
+          curl -fSL -o appimagetool https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
           chmod +x appimagetool
           ./appimagetool --appimage-extract
           export ARCH=x86_64
