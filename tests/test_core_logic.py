@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import json
 import hashlib
 import tempfile
@@ -15,8 +16,8 @@ def test_version_loading():
         data = json.load(f)
     assert "version" in data, "version key missing"
     assert "build" in data, "build key missing"
-    assert data["version"] == "1.0.6"
-    assert data["build"] == 106
+    assert re.match(r'^\d+\.\d+\.\d+$', data["version"]), f"Invalid semver: {data['version']}"
+    assert isinstance(data["build"], int) and data["build"] >= 100, f"Invalid build number: {data['build']}"
     print("[PASS] test_version_loading")
 
 # Test dynamic port scanning logic

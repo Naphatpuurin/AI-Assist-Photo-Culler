@@ -44,6 +44,8 @@ function App() {
   const [theme, setTheme] = useState('dark');
   const [lang, setLang] = useState(() => {
     try {
+      const urlLang = new URLSearchParams(window.location.search).get('lang');
+      if (urlLang === 'th' || urlLang === 'en') return urlLang;
       return localStorage.getItem('micmose_language') || 'en';
     } catch {
       return 'en';
@@ -63,8 +65,22 @@ function App() {
     }
   }, [lang]);
 
-  const [showAboutModal, setShowAboutModal] = useState(false);
-  const [aboutTab, setAboutTab] = useState('settings'); // 'settings' | 'about'
+  const [showAboutModal, setShowAboutModal] = useState(() => {
+    try {
+      const m = new URLSearchParams(window.location.search).get('modal');
+      return m === 'settings' || m === 'about';
+    } catch {
+      return false;
+    }
+  });
+  const [aboutTab, setAboutTab] = useState(() => {
+    try {
+      const m = new URLSearchParams(window.location.search).get('modal');
+      return m === 'about' ? 'about' : 'settings';
+    } catch {
+      return 'settings';
+    }
+  }); // 'settings' | 'about'
 
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);

@@ -16,7 +16,8 @@ a = Analysis(
         ('yolov8n.onnx', '.'),
         ('yolov8n.pt', '.'),
         ('app.ico', '.'),
-        ('app.png', '.')
+        ('app.png', '.'),
+        ('version.json', '.')
     ] + ort_datas + rawpy_datas,
     hiddenimports=['onnxruntime', 'pynvml', 'rawpy', 'exifread', 'raw_utils'],
     hookspath=[],

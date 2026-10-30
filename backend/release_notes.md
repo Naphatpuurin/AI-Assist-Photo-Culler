@@ -1,4 +1,4 @@
-# MicMose Photo Culler Pro v1.0.6 (Build 106) — Cross-Platform Release (Windows, macOS & Linux)
+# MicMose Photo Culler Pro v1.0.7 (Build 107) — Cross-Platform Release (Windows, macOS & Linux)
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
@@ -6,7 +6,7 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 #### 🐧 Linux (All Distributions)
 - **`MicMose-Photo-Culler-Pro-x86_64.AppImage`** — Universal double-clickable Linux AppImage (Ubuntu, Debian, Fedora, Arch, Mint, Pop!_OS, openSUSE). Runs standalone without installation.
-- **`MicMose-Photo-Culler-Pro_1.0.6_amd64.deb`** — Native Debian / Ubuntu / Mint package with system desktop shortcut & application menu icon (`sudo dpkg -i MicMose-Photo-Culler-Pro_1.0.6_amd64.deb`).
+- **`MicMose-Photo-Culler-Pro_1.0.7_amd64.deb`** — Native Debian / Ubuntu / Mint package with system desktop shortcut & application menu icon (`sudo dpkg -i MicMose-Photo-Culler-Pro_1.0.7_amd64.deb`).
 - **`MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz`** — Portable Linux tarball archive with standalone launcher script (`./run.sh`).
 
 #### 🍏 macOS (Apple Silicon & Intel)
@@ -23,23 +23,22 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ---
 
-### ⚡ What's New in v1.0.6 (Build 106)
+### ⚡ What's New in v1.0.7 (Build 107)
 
-- **🐧 Comprehensive Linux Support**:
-  - Full native support for Ubuntu, Debian, Fedora, Arch Linux, Linux Mint, and all standard distributions.
-  - Formatted into universal **AppImage**, **Debian (`.deb`)**, and **Portable Tarball (`.tar.gz`)**.
-  - Integrated NVIDIA **CUDA GPU** acceleration (`CUDAExecutionProvider`) on Linux workstations with transparent CPU thread-pool fallback.
-  - Native Linux folder picker and `xdg-open` update deployment handler.
-- **🎨 White Chalk Theme Polish**:
-  - Refined daylight theme label to **White Chalk** (`☀ WHITE CHALK`) across both the top bar quick toggle and Settings options grid.
-  - Paired cleanly with **Dark Graphite** (`☾ DARK GRAPHITE`).
-- **📐 Minimalist Identity Header Layout**:
-  - Removed repetitive application title, logo, and tagline next to the native window title bar.
-  - Dedicated, centered **`⚙ SETTINGS`** button provides clean, distraction-free access to studio parameters.
-- **🔄 Streamlined In-App Software Updates**:
-  - Direct 1-click GitHub check and auto-pulling matching your exact operating system (Windows, macOS, or Linux).
-  - 3-button cue-sheet modal: **1. Skip updates**, **2. Remind me later**, and **3. Update**.
-- **🔏 Authenticode Code Signing**: Digitally signed all Windows binaries with SHA-256 and RFC 3161 DigiCert timestamping.
+- **🇹🇭 Bilingual Localization & Noto Sans Thai Support**:
+  - Full Thai language support (`ภาษาไทย`) across all views, menus, focus level descriptions (ระดับ 1–10), and culling categories (*คัดเลือก*, *ไฮไลต์*, *พิจารณา*, *คัดทิ้ง*).
+  - Elegant **Noto Sans Thai** typography loaded with native OS fallbacks (`Leelawadee UI`, `Thonburi`, `Tahoma`), ensuring zero tonal mark clipping.
+  - Dedicated language selector under Studio Settings (`02 // ภาษาการแสดงผล (LANGUAGE)`) and instant header toggle `[ 🇹🇭 ไทย / 🇺🇸 EN ]`.
+  - Automatic language preference persistence across application sessions (`localStorage`).
+- **🛡️ Hardened Workstation Security**:
+  - Ephemeral session authorization token generated on application boot and enforced across all local backend endpoints.
+  - Strict localhost CORS policies blocking external browser origins from interacting with the app.
+- **🔒 Cryptographic Auto-Update Verification**:
+  - Auto-updater streams and verifies SHA-256 cryptographic hashes against `SHA256SUMS.txt` before running any downloaded installer package.
+- **🔌 Dynamic Port Discovery**:
+  - Automatic socket scanner finds free port if default port 8000 is occupied by another service.
+- **🐧 Linux Packaging & CI**:
+  - Integrated AppImage, Debian `.deb`, and Portable Tarball builds with CUDA acceleration support.
 
 ---
 
