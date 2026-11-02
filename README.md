@@ -1,6 +1,7 @@
 # MicMose Photo Culler Pro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/Release-v1.1.0-emerald.svg)](https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases/tag/v1.1.0)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.1-646cff.svg)](https://vitejs.dev/)
@@ -32,6 +33,45 @@ It combines **pure-threshold neural sharpness analysis**, **native camera RAW de
 
 ---
 
+## 🚀 What's New in v1.1.0 (Build 110)
+
+> [!TIP]
+> **Minor Milestone Release**: Version **1.1.0** introduces high-throughput automated burst grouping, dual-ocular blink detection, synchronized side-by-side compare inspection, sensor noise telemetry, and bilingual Thai localization.
+
+### ⚡ 1. Burst Photo Grouping & Hero Frame Selection
+- **Intelligent Cluster Detection**: Automatically groups rapid burst sequences within dynamic time windows ($\Delta t \le 1.5$–$2.0$s) and visual perceptual distance (`dHash` $\le 12$).
+- **Hero Frame Coronation**: Evaluates each cluster and crowns the **`👑 HERO`** frame based on composite eye sharpness, open eyes, low sensor noise, and balanced exposure.
+- **Micro-Scrubbing Burst Strip**: Docked filmstrip under the main view with instant thumbnail navigation and status badges (`👑 HERO` vs. `⚡ 2/5`).
+- **One-Click Batch Actions**:
+  - **`👑 Keep Hero & Reject Rest [K]`**: Immediately selects the hero frame (3★ Pick) and marks all other sequence frames as 1★ Reject.
+  - **`⭐ Promote Top 2`**: Retains the top two best frames and rejects the rest.
+  - **`⚡ Compare Burst [C]`**: Sends the entire burst group directly into Side-by-Side Compare view.
+- **`⚡ Collapse Bursts` Toggle**: Declutters the catalog by up to 75–80%, displaying only winning Hero shots until expanded.
+
+### 👁️ 2. Dual-Ocular Blink & Closed-Eye Detection
+- **Precise Eye ROI Extraction**: Automatically isolates Left and Right eye bounding boxes for detected portrait subjects.
+- **Directional Gradient & Valley Analysis**: Differentiates vertical pupil/iris contrast ($G_x / G_y \ge 0.50$) from horizontal closed-eyelid creases ($G_x / G_y < 0.35$) and pupil intensity dips.
+- **Continuous Openness Score & Group Ratio**: Reports $0\%–100\%$ ocular openness alongside group percentages (e.g. `"Eyes Open: 3/4 (75%)"`).
+- **Ocular Telemetry Card**: Added to the Right Rail Dossier with a color-coded status meter (`Prism Green` for open, `Vermilion Red` for blinks).
+- **Dedicated `BLINK / EYE-` Tab**: Automatically demotes closed-eye frames from 3★ Selects when `Reject Blinking & Closed Eyes` is active.
+
+### ⚖️ 3. Side-by-Side Compare Mode (2-Up & 4-Up)
+- **Multi-Frame Inspection Stages**: Dual-split (2-Up) and Quad-split (4-Up) side-by-side comparison stages accessible via hotkey <kbd>C</kbd> or header mode buttons.
+- **Synchronized Pan & Zoom**: Panning and scrolling locks across all active slots simultaneously when `🔒 Sync Pan & Zoom` is active.
+- **Instant Zoom Modes**: Quick buttons for **`FIT`**, **`100% (1:1)`**, and **`200% (2:1)`**.
+- **`👁️ Lock to Eyes (200%)` One-Click Alignment**: Zooms to 200% and auto-centers each compare slot directly onto detected eye bounding boxes across candidate frames.
+- **In-Pane Floating Controls**: Fast rating pills (`1★`, `2★`, `3★ Pick`, `Reject`, `👑 Crown Winner [W]`) with keyboard shortcut support.
+
+### 📡 4. Sensor Noise & Grain Telemetry
+- **True Sensor Noise Variance**: Immerkær Fast Noise Variance and flat-patch standard deviation estimation.
+- **Grain-Safe Sharpness Math**: Subtracts sensor noise floor from Laplacian variance calculations so high-ISO noise never masquerades as sharp optical focus.
+- **Dedicated Telemetry Card**: Reports Noise Index (0–100), estimated SNR (dB), $\sigma$, and visual color meter in the Dossier.
+
+### 🇹🇭 5. English & Thai Bilingual Localization
+- Instant language switching directly from the Settings modal with native **Noto Sans Thai** typography across all cards, badges, and modals.
+
+---
+
 ## 🖥️ Interface & Visual Overview
 
 | Overview Culling Session | 100% Loupe Sharpness Zoom |
@@ -46,6 +86,14 @@ It combines **pure-threshold neural sharpness analysis**, **native camera RAW de
 
 ## ⚡ Highlights & Key Capabilities
 
+- **⚡ Automated Burst Grouping & Hero Selection**
+  Clusters fast action bursts ($\Delta t \le 1.5$–$2.0$s) and crowns the sharpest, open-eyed frame as **`👑 HERO`**. Declutter catalogs with **`⚡ Collapse Bursts`** and batch-process with **Keep Hero & Reject Rest [K]**.
+- **👁️ Dual-Ocular Blink & Closed-Eye Detection**
+  Isolates left/right eye ROIs and runs directional gradient ($G_x / G_y$) and intensity valley analysis to flag blinking subjects and report $0\%–100\%$ eye openness telemetry.
+- **⚖️ Side-by-Side Compare Mode (2-Up & 4-Up)**
+  Compare 2 or 4 images simultaneously with synchronized pan and zoom, instant `FIT`, `100%`, `200%` presets, and 1-click **`👁️ Lock to Eyes (200%)`** alignment.
+- **🇹🇭 Bilingual Interface (English & Thai)**
+  One-click language switching in Settings powered by editorial **Noto Sans Thai** typography.
 - **🎛️ Dedicated Top-Left Studio Settings & About Hub**
   Access the **Settings & About** modal directly from the dedicated button on the far left of the header bar to inspect system hardware status, neural culling specs, and configure studio preferences.
 - **🎯 Calibrated Pure-Threshold Culling (Level 1–10 Scale)**
@@ -187,12 +235,15 @@ See the complete [**Linux Build & Run Guide (docs/LINUX_BUILD.md)**](docs/LINUX_
 
 | Shortcut | Action | Description |
 | :---: | :---: | :--- |
-| <kbd>3</kbd> | **Rate 3 Stars (Select / Keep)** | Marks photo as a prime keeper |
+| <kbd>3</kbd> / <kbd>P</kbd> | **Rate 3 Stars / Pick** | Marks active photo as a prime keeper |
 | <kbd>2</kbd> | **Rate 2 Stars (Review / Maybe)** | Flags photo for second-pass review |
-| <kbd>1</kbd> | **Rate 1 Star (Reject / Discard)** | Flags photo for rejection |
+| <kbd>1</kbd> / <kbd>X</kbd> | **Rate 1 Star / Reject** | Flags photo for rejection |
+| <kbd>C</kbd> | **Toggle Side-by-Side Compare** | Switches between 2-Up compare mode and active view |
+| <kbd>K</kbd> | **Keep Hero & Reject Rest** | Keeps winning burst shot (3★ Pick) and marks rest as 1★ Reject |
+| <kbd>W</kbd> | **Crown Compare Winner** | Crowns active compare slot as winner and demotes others |
 | <kbd>←</kbd> / <kbd>→</kbd> | **Previous / Next Image** | Navigate sequentially through the catalog |
 | <kbd>Space</kbd> | **Toggle 100% Loupe Zoom** | Inspect pixel-level subject and eye sharpness |
-| <kbd>Esc</kbd> | **Close Loupe / Deselect** | Return to catalog grid view |
+| <kbd>Esc</kbd> | **Close Loupe / Compare / Deselect** | Return to catalog grid view |
 
 ---
 
