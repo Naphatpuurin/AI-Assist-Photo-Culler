@@ -1,0 +1,89 @@
+name: Build Windows Release (.exe, Setup & .msi)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pyinstaller
+
+      - name: Build Windows Standalone Executable
+        run: |
+          cd backend
+          pyinstaller ImageCullerAI.spec --clean --noconfirm
+
+      - name: Prepare Release Directory & Executables
+        run: |
+          New-Item -ItemType Directory -Force -Path release
+          Copy-Item "backend/dist/MicMosePhotoCullerPro.exe" "release/MicMose Photo Culler Pro.exe" -Force
+          Copy-Item "backend/dist/MicMosePhotoCullerPro.exe" "release/MicMose-Photo-Culler-Pro-Portable.exe" -Force
+          Copy-Item "backend/dist/MicMosePhotoCullerPro.exe" "backend/dist/MicMose Photo Culler Pro.exe" -Force
+
+      - name: Build Inno Setup Installer
+        run: |
+          choco install innosetup -y --no-progress
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" backend/installer.iss
+
+      - name: Build WiX MSI Package
+        run: |
+          dotnet tool install --global wix
+          wix build backend/product.wxs -o release/MicMose-Photo-Culler-Pro.msi
+
+      - name: Upload Windows Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-packages
+          path: release/*
+
+      - name: Attach Windows Packages to Release (if tag pushed)
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release view ${{ github.ref_name }} >$null 2>&1 || `
+          gh release create ${{ github.ref_name }} `
+            --title "MicMose Photo Culler Pro ${{ github.ref_name }}" `
+            --notes-file backend/release_notes.md
+          for ($i=1; $i -le 3; $i++) {
+            gh release upload ${{ github.ref_name }} `
+              "release/MicMose Photo Culler Pro.exe" `
+              "release/MicMose-Photo-Culler-Pro-Portable.exe" `
+              "release/MicMose-Photo-Culler-Pro-Setup.exe" `
+              "release/MicMose-Photo-Culler-Pro.msi" `
+              "release/SHA256SUMS.txt" `
+              --clobber
+            if ($LASTEXITCODE -eq 0) { break }
+            Start-Sleep -Seconds 3
+          }
