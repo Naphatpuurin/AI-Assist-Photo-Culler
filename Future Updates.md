@@ -1,48 +1,44 @@
 # MicMose Photo Culler Pro — Future Updates Roadmap
 
-This document outlines the priority roadmap and feature specifications scheduled for future major and minor releases of **MicMose Photo Culler Pro**.
+This document outlines the roadmap and technical feature specifications for **MicMose Photo Culler Pro**.
 
 ---
 
-## 🚀 High-Priority Feature Pipeline
+## ✅ Recently Shipped in v1.1.0
 
 ### 1. 🥇 Burst Photo Grouping & Hero Frame Selection
-* **Target Release**: v1.1.0
-* **Photographer Need**:
-  Wedding, sports, and commercial event photographers frequently fire rapid sequences (3–10 frames per second) during critical moments (walking down the aisle, confetti toss, speeches, reactions). Reviewing 6–10 near-identical frames individually accounts for ~70% of culling fatigue.
-* **Technical Specification**:
-  - **Temporal & Focal Clustering**: Automatically cluster shots captured within $\Delta t \le 1.5$ seconds with matching camera model, focal length, and similar perceptual hash distance ($\text{dHash} \le 12$).
-  - **Hero Frame Crown**: Automatically crown the highest-scoring frame within each burst (highest ocular sharpness, best exposure balance, open eyes).
-  - **UI Collapsible Filmstrip**: Collapse bursts into a single primary card in the gallery with a badge (e.g. `[ 1 / 6 ]`). Clicking expands the sequence inline for micro-inspection.
-  - **Batch Verdict**: One-click *"Keep Hero & Reject Rest"* or *"Promote Best 2"*.
+* **Status**: Complete & Verified
+* **Capabilities**:
+  - Automatically clusters high-speed sequences within dynamic time windows ($\Delta t \le 1.5$–$2.0$s) and visual distance.
+  - Automatically crowns the **Hero Frame** based on composite ocular sharpness, open eyes, low sensor noise, and exposure.
+  - Gallery thumbnail badges (`👑 HERO` gold badge, `[⚡ 1/5]` burst sequence badges).
+  - Docked Burst Filmstrip Bar with micro-scrubbing.
+  - One-click batch actions: `Keep Hero & Reject Rest [K]`, `Promote Top 2`, `Compare Burst [C]`.
+  - Gallery "Collapse Bursts" filter toggle to cut culling clutter by 75–80%.
+
+### 2. 🥈 Dual-Ocular Blink & Closed-Eye Detection
+* **Status**: Complete & Verified
+* **Capabilities**:
+  - Extracts calibrated Left & Right Eye bounding boxes per detected subject.
+  - Multi-metric ocular discrimination: Sobel directional gradient dominance ($G_x$ vertical edge energy vs $G_y$ eyelid crease lines), pupil-to-sclera valley dip intensity profile, and local variance.
+  - Continuous Openness Percentage ($0–100\%$) and automatic Blink Detection flag (`blink_detected`).
+  - Multi-subject group ratio telemetry (e.g. `"Eyes Open: 3/4 (75%)"`).
+  - Right rail Dossier telemetry card with visual progress meter.
+  - Rejection policy: Demotes blinking shots from 3★ and auto-filters under `BLINK / CLOSED EYES`.
+
+### 3. 🥉 2-Up & 4-Up Side-by-Side Compare Mode with Synchronized Pan & Zoom
+* **Status**: Complete & Verified
+* **Capabilities**:
+  - Dual-split (2-Up) and Quad-split (4-Up) side-by-side inspection stages toggled via hotkey `C` or mode tabs.
+  - **Synchronized Pan & Zoom**: Dragging or mouse wheel scrolling in any slot moves all panes synchronously.
+  - Preset zoom buttons: `FIT`, `100% (1:1)`, `200% (2:1)`.
+  - **"👁️ Lock to Eyes" One-Click Button**: Instantly zooms to 200% Loupe and centers each pane directly on the subject's eyes.
+  - In-pane floating rating controls (`1★`, `2★`, `3★ Pick`, `Reject`, `👑 Crown Winner`).
+  - Active slot focus highlighting and direct keyboard rating (`1`–`3`, `P`, `X`, `W`).
 
 ---
 
-### 2. 🥈 Facial Landmark Blink & Closed-Eye Detection (EAR)
-* **Target Release**: v1.1.0
-* **Photographer Need**:
-  A photograph can have tack-sharp focus and perfect lighting, but if key subjects (e.g. bride, groom, speaker) are caught mid-blink or with closed eyes, the photo is unusable.
-* **Technical Specification**:
-  - **Facial Landmark Mesh**: Integrate a lightweight 68-point or 6-point ocular landmark detector within YOLO-detected face bounding boxes.
-  - **Eye Aspect Ratio (EAR)**: Compute $EAR = \frac{\|p_2 - p_6\| + \|p_3 - p_5\|}{2 \|p_1 - p_4\|}$. Frames falling below the dynamic calibrated threshold are tagged as `BLINK / CLOSED`.
-  - **Group Shot Tolerance**: In large group photos ($> 4$ subjects), report the percentage of subjects with open eyes (`"Eyes Open: 8/8 (100%)"`).
-  - **Rule Policy**: Optional culling toggle *"Auto-reject if primary subject eyes closed"*.
-
----
-
-### 3. 🥉 2-Up / 4-Up Side-by-Side Compare Mode with Locked Zoom
-* **Target Release**: v1.2.0
-* **Photographer Need**:
-  When choosing between two or four closely-rated candidate shots, flipping back and forth sequentially causes cognitive fatigue. Photographers need simultaneous comparison with synchronized pan & zoom.
-* **Technical Specification**:
-  - **Split View Layout**: Dual-split (2-up) and Quad-split (4-up) stage layouts toggled via hotkey `C`.
-  - **Synchronized Coordinate Navigation**: Dragging, panning, or zooming (100%, 200%, Fit) in one viewport synchronizes camera centers across all active panes in lockstep.
-  - **Subject Lock**: One-click *"Lock to Eyes/Face"* centering all panes directly on the subject's face at 100% pixel loupe.
-  - **Direct Keyboard Rating**: Pressing `1`–`5`, `P` (Pick), or `X` (Reject) acts on the currently focused compare pane.
-
----
-
-### 4. ⚡ Instant Catalog Caching (`.cullcache` / SQLite)
+## 🚀 Upcoming Roadmap Pipeline
 * **Target Release**: v1.2.0
 * **Photographer Need**:
   When reopening a previously analyzed directory containing 1,500–5,000 photos, the application should reload instantly without re-processing matrices or re-reading disk EXIF.
