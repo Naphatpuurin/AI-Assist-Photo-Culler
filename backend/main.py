@@ -54,10 +54,10 @@ def load_app_version():
             try:
                 with open(c, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return data.get("version", "1.0.6"), data.get("build", 106)
+                    return data.get("version", "1.1.0"), data.get("build", 110)
             except Exception:
                 pass
-    return "1.0.6", 106
+    return "1.1.0", 110
 
 APP_VERSION, APP_BUILD = load_app_version()
 

@@ -138,8 +138,8 @@ function App() {
     gpu_util_percent: 0,
     vram_used_mb: 0,
     vram_total_mb: 8151,
-    app_version: '1.0.6',
-    app_build: 106,
+    app_version: '1.1.0',
+    app_build: 110,
     learning: {
       total_feedback_events: 0,
       focus_bias: 0,
@@ -2562,7 +2562,7 @@ function App() {
                   <div className="settings-updater-card">
                     <div className="hw-row">
                       <span className="hw-k">{t.installed_build_lbl}</span>
-                      <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'}</span>
+                      <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.1.0'} // BUILD {hwStatus.app_build || '110'}</span>
                     </div>
                     <div className="hw-row">
                       <span className="hw-k">{t.release_channel_lbl}</span>
@@ -2636,7 +2636,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">{t.about_title}</h2>
-                    <div className="about-version">VERSION {hwStatus.app_version || '1.0.6'} // BUILD {hwStatus.app_build || '106'} // {t.about_prod_release}</div>
+                    <div className="about-version">VERSION {hwStatus.app_version || '1.1.0'} // BUILD {hwStatus.app_build || '110'} // {t.about_prod_release}</div>
                     <div className="about-author">{t.about_author}</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a

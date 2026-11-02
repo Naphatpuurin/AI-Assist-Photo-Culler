@@ -1,7 +1,7 @@
 ; Inno Setup Script for MicMose Photo Culler Pro - Dark Editorial Theme
 #define MyAppName "MicMose Photo Culler Pro"
-#define MyAppVersion "1.0.7"
-#define MyAppBuild "107"
+#define MyAppVersion "1.1.0"
+#define MyAppBuild "110"
 #define MyAppPublisher "Naphatphurin Prachantasena"
 #define MyAppURL "https://github.com/Naphatpuurin/AI-Assist-Photo-Culler"
 #define MyAppExeName "MicMose Photo Culler Pro.exe"
@@ -27,12 +27,12 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-VersionInfoVersion=1.0.7.107
+VersionInfoVersion=1.1.0.110
 VersionInfoCompany=Naphatphurin Prachantasena
 VersionInfoDescription=MicMose Photo Culler Pro Setup
 VersionInfoCopyright=Copyright (C) 2026 Naphatphurin Prachantasena
 VersionInfoProductName=MicMose Photo Culler Pro
-VersionInfoProductVersion=1.0.7.107
+VersionInfoProductVersion=1.1.0.110
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"

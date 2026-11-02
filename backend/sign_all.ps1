@@ -36,7 +36,7 @@ foreach ($f in $filesToSign) {
             /fd SHA256 `
             /tr "http://timestamp.digicert.com" `
             /td SHA256 `
-            /d "MicMose Photo Culler Pro v1.0.7" `
+            /d "MicMose Photo Culler Pro v1.1.0" `
             /du "https://github.com/Naphatpuurin/AI-Assist-Photo-Culler" `
             $f
 
@@ -45,7 +45,7 @@ foreach ($f in $filesToSign) {
             & $Signtool sign `
                 /sha1 $Thumbprint `
                 /fd SHA256 `
-                /d "MicMose Photo Culler Pro v1.0.7" `
+                /d "MicMose Photo Culler Pro v1.1.0" `
                 /du "https://github.com/Naphatpuurin/AI-Assist-Photo-Culler" `
                 $f
         }
