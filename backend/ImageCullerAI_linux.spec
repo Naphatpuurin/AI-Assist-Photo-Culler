@@ -25,6 +25,7 @@ a = Analysis(
         'exifread',
         'raw_utils',
         'pywebview',
+        'webview.platforms.gtk',
         'gi',
         'gi.repository.WebKit2',
         'gi.repository.Gtk',

@@ -84,7 +84,7 @@ jobs:
           cp backend/app.png AppDir/micmose-photo-culler-pro.png
           cp backend/app.png AppDir/.DirIcon
 
-          cat << 'EOF' > AppDir/usr/share/applications/micmose-photo-culler-pro.desktop
+          cat << 'EOF' | sed 's/^[ \t]*//' > AppDir/usr/share/applications/micmose-photo-culler-pro.desktop
           [Desktop Entry]
           Name=MicMose Photo Culler Pro
           Comment=High-throughput AI-Assisted Photo Culling & RAW Telemetry Studio
@@ -97,7 +97,7 @@ jobs:
 
           cp AppDir/usr/share/applications/micmose-photo-culler-pro.desktop AppDir/
 
-          cat << 'EOF' > AppDir/AppRun
+          cat << 'EOF' | sed 's/^[ \t]*//' > AppDir/AppRun
           #!/bin/sh
           HERE="$(dirname "$(readlink -f "${0}")")"
           export PATH="${HERE}/usr/bin:${PATH}"
@@ -128,7 +128,7 @@ jobs:
           cp AppDir/usr/share/applications/micmose-photo-culler-pro.desktop "$DEB_DIR/usr/share/applications/"
           cp backend/app.png "$DEB_DIR/usr/share/icons/hicolor/256x256/apps/micmose-photo-culler-pro.png"
 
-          cat << EOF > "$DEB_DIR/DEBIAN/control"
+          cat << EOF | sed 's/^[ \t]*//' > "$DEB_DIR/DEBIAN/control"
           Package: micmose-photo-culler-pro
           Version: $RAW_VER
           Section: graphics
@@ -148,7 +148,7 @@ jobs:
           mkdir -p "$TAR_DIR"
           cp backend/dist/MicMosePhotoCullerPro "$TAR_DIR/MicMosePhotoCullerPro"
           cp backend/app.png "$TAR_DIR/app.png"
-          cat << 'EOF' > "$TAR_DIR/run.sh"
+          cat << 'EOF' | sed 's/^[ \t]*//' > "$TAR_DIR/run.sh"
           #!/bin/sh
           SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
           cd "$SCRIPT_DIR"
@@ -172,8 +172,10 @@ jobs:
           gh release create ${{ github.ref_name }} \
             --title "MicMose Photo Culler Pro ${{ github.ref_name }}" \
             --notes-file backend/release_notes.md || true
-          gh release upload ${{ github.ref_name }} \
-            release/MicMose-Photo-Culler-Pro-x86_64.AppImage \
-            release/*.deb \
-            release/MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz \
-            --clobber
+          for i in 1 2 3; do
+            gh release upload ${{ github.ref_name }} \
+              release/MicMose-Photo-Culler-Pro-x86_64.AppImage \
+              release/*.deb \
+              release/MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz \
+              --clobber && break || sleep 3
+          done
