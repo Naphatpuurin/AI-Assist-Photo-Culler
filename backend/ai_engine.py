@@ -489,70 +489,129 @@ class AIEngine:
 
     def evaluate_eye_focus_and_openness(self, img_gray, person_boxes):
         """
-        Evaluate ocular region. Only flags 'closed' when there is a large, clear portrait face
-        with unmistakable closed-eyelid horizontal dominance, so full-body or profile shots
-        are NEVER falsely rejected.
+        Robust Ocular Analysis & Blink Detection:
+        Extracts left and right eye ROIs per detected face/head.
+        Computes Sobel gradient directional dominance (open eyes produce vertical & horizontal contrast;
+        closed eyes produce exclusively horizontal eyelid crease lines with no vertical contrast),
+        along with pupil-to-sclera valley dip and local contrast.
+        Returns (best_status, eye_lvl, eye_rois_norm, avg_openness, blink_detected, group_ratio).
         """
         if not person_boxes:
-            return "no_subject", 5.0, []
+            return "no_subject", 5.0, [], 100, False, "0/0 (100%)"
 
         ih, iw = img_gray.shape[:2]
         best_eye_level = 5.0
         best_status = "cant_tell"
         eye_rois_norm = []
+        openness_scores = []
+        blinks_count = 0
+        total_eval_faces = 0
 
         for box in person_boxes:
             x1, y1, x2, y2 = map(int, box)
             bw = x2 - x1
             bh = y2 - y1
-            if bw < 65 or bh < 110:
+            if bw < 50 or bh < 80:
                 continue
 
-            ex1 = max(0, int(x1 + bw * 0.24))
-            ex2 = min(iw, int(x1 + bw * 0.76))
-            ey1 = max(0, int(y1 + bh * 0.08))
-            ey2 = min(ih, int(y1 + bh * 0.25))
+            total_eval_faces += 1
 
-            eye_roi = img_gray[ey1:ey2, ex1:ex2]
-            if eye_roi.size < 120:
+            # Estimate head bounding box (top ~25-35% of person box)
+            head_h = min(bh, max(int(bw * 1.25), int(bh * 0.32)))
+            hy1 = y1
+            hy2 = min(ih, y1 + head_h)
+
+            # Eye horizontal slice: ~18% to ~44% from top of head
+            ey1 = max(0, int(hy1 + head_h * 0.18))
+            ey2 = min(ih, int(hy1 + head_h * 0.44))
+            eh = ey2 - ey1
+            if eh < 8:
                 continue
 
-            eye_rois_norm.append({
-                "x": round(float((ex1 / iw) * 100.0), 2),
-                "y": round(float((ey1 / ih) * 100.0), 2),
-                "w": round(float(((ex2 - ex1) / iw) * 100.0), 2),
-                "h": round(float(((ey2 - ey1) / ih) * 100.0), 2)
-            })
+            # Dual Eye Regions: Left Eye (subject's right) and Right Eye (subject's left)
+            left_ex1 = max(0, int(x1 + bw * 0.16))
+            left_ex2 = min(iw, int(x1 + bw * 0.46))
+            right_ex1 = max(0, int(x1 + bw * 0.54))
+            right_ex2 = min(iw, int(x1 + bw * 0.84))
 
-            gx = cv2.Sobel(eye_roi, cv2.CV_32F, 1, 0, ksize=3)
-            gy = cv2.Sobel(eye_roi, cv2.CV_32F, 0, 1, ksize=3)
+            # Full ocular strip
+            full_ex1 = max(0, int(x1 + bw * 0.16))
+            full_ex2 = min(iw, int(x1 + bw * 0.84))
+
+            # Add eye boxes for UI visualization (Left Eye, Right Eye)
+            if left_ex2 > left_ex1:
+                eye_rois_norm.append({
+                    "x": round(float((left_ex1 / iw) * 100.0), 2),
+                    "y": round(float((ey1 / ih) * 100.0), 2),
+                    "w": round(float(((left_ex2 - left_ex1) / iw) * 100.0), 2),
+                    "h": round(float((eh / ih) * 100.0), 2),
+                    "label": "LEFT EYE"
+                })
+            if right_ex2 > right_ex1:
+                eye_rois_norm.append({
+                    "x": round(float((right_ex1 / iw) * 100.0), 2),
+                    "y": round(float((ey1 / ih) * 100.0), 2),
+                    "w": round(float(((right_ex2 - right_ex1) / iw) * 100.0), 2),
+                    "h": round(float((eh / ih) * 100.0), 2),
+                    "label": "RIGHT EYE"
+                })
+
+            ocular_strip = img_gray[ey1:ey2, full_ex1:full_ex2]
+            if ocular_strip.size < 60:
+                continue
+
+            # 1. Sobel Gradient Directional Dominance
+            gx = cv2.Sobel(ocular_strip, cv2.CV_32F, 1, 0, ksize=3)
+            gy = cv2.Sobel(ocular_strip, cv2.CV_32F, 0, 1, ksize=3)
             energy_x = float(np.mean(np.abs(gx)))
             energy_y = float(np.mean(np.abs(gy)))
-            local_std = float(np.std(eye_roi))
-            lap_var = float(cv2.Laplacian(eye_roi, cv2.CV_64F).var())
-
-            eye_lvl = self.map_sharpness_to_level_1_10(lap_var * 1.2)
             ratio_xy = energy_x / (energy_y + 1e-4)
 
+            # 2. Local Contrast & Laplacian Sharpness
+            local_std = float(np.std(ocular_strip))
+            lap_var = float(cv2.Laplacian(ocular_strip, cv2.CV_64F).var())
+            eye_lvl = self.map_sharpness_to_level_1_10(lap_var * 1.2)
             if eye_lvl > best_eye_level:
                 best_eye_level = eye_lvl
 
-            if local_std < 12.0 or lap_var < 6.0:
-                status = "cant_tell"
-            elif ratio_xy < 0.48 and lap_var < 18.0 and bw >= 140:
-                # Very strict condition for 'closed' so we don't cause false-positive rejections
-                status = "closed"
-            elif eye_lvl >= 4.2 and ratio_xy >= 0.58:
-                status = "open"
+            # 3. Horizontal Intensity Valley (Pupil vs Sclera Dip)
+            col_means = np.mean(ocular_strip, axis=0)
+            valley_dip = float(np.max(col_means) - np.min(col_means))
+
+            # Calibrated Continuous Openness Score (0 - 100%)
+            # High valley dip + balanced xy ratio + good std = wide open eye
+            openness = (
+                (min(1.0, ratio_xy / 0.65) * 45.0) +
+                (min(1.0, valley_dip / 28.0) * 35.0) +
+                (min(1.0, local_std / 20.0) * 20.0)
+            )
+            openness = float(np.clip(openness, 0.0, 100.0))
+            openness_scores.append(openness)
+
+            # Classify face status
+            if local_std < 10.0 or lap_var < 5.0 or bw < 85:
+                face_status = "cant_tell"
+            elif openness < 36.0 or (ratio_xy < 0.44 and lap_var < 16.0 and bw >= 120):
+                face_status = "closed"
+                blinks_count += 1
+            elif openness >= 55.0 and ratio_xy >= 0.52:
+                face_status = "open"
             else:
-                status = "cant_tell"
+                face_status = "half_closed"
 
-            if status == "open":
-                best_status = "open"
-            elif status == "closed" and best_status != "open":
+            if face_status == "closed":
                 best_status = "closed"
+            elif face_status == "open" and best_status != "closed":
+                best_status = "open"
+            elif face_status == "half_closed" and best_status not in ("open", "closed"):
+                best_status = "half_closed"
 
-        return best_status, round(best_eye_level, 1), eye_rois_norm
+        avg_openness = int(round(np.mean(openness_scores))) if openness_scores else 100
+        blink_detected = (blinks_count > 0)
+        open_count = total_eval_faces - blinks_count
+        group_ratio = f"{open_count}/{total_eval_faces} ({int(round(open_count / max(1, total_eval_faces) * 100))}%)" if total_eval_faces > 0 else "N/A"
+
+        return best_status, round(best_eye_level, 1), eye_rois_norm, avg_openness, blink_detected, group_ratio
 
     def detect_document_or_receipt(self, img_bgr, img_gray, subjects_detected: int) -> bool:
         if subjects_detected > 0:
@@ -1061,10 +1120,13 @@ class AIEngine:
             results["focus_score"] = int(round(measured_level * 10))
 
             # 5. Eye Focus & Openness
-            eye_status, eye_lvl, eye_boxes = self.evaluate_eye_focus_and_openness(img_gray, boxes)
+            eye_status, eye_lvl, eye_boxes, eye_open_pct, blink_det, group_ratio = self.evaluate_eye_focus_and_openness(img_gray, boxes)
             results["eye_status"] = eye_status
             results["eye_focus_score"] = eye_lvl
             results["eye_boxes"] = eye_boxes
+            results["eye_openness_pct"] = eye_open_pct
+            results["blink_detected"] = blink_det
+            results["group_eye_ratio"] = group_ratio
 
             # 6. Reject Criteria Detection
             is_doc = self.detect_document_or_receipt(img, img_gray, len(boxes))
@@ -1127,8 +1189,10 @@ class AIEngine:
                 flags.append("Soft Focus")
             if is_noisy:
                 flags.append("Heavy Noise" if noise_level == "heavy" else "Severe Grain")
-            if eye_status == "closed":
-                flags.append("Closed Eyes")
+            if eye_status == "closed" or blink_det:
+                flags.append("Closed Eyes / Blink")
+            elif eye_status == "half_closed":
+                flags.append("Half-Closed Eyes")
             elif eye_status == "cant_tell" and len(boxes) > 0:
                 flags.append("Eyes: Can't Tell")
             elif eye_status == "open":
@@ -1139,7 +1203,8 @@ class AIEngine:
             # Composite Quality Rank Score (0 - 100)
             exposure_penalty = abs(exposure - exp_center) * 0.18
             noise_penalty = (noise_score * 0.12) if noise_score > 35.0 else 0.0
-            eye_bonus = 8.0 if eye_status == "open" else (-15.0 if eye_status == "closed" else 0.0)
+            blink_penalty = 25.0 if (eye_status == "closed" or blink_det) else (8.0 if eye_status == "half_closed" else 0.0)
+            eye_bonus = 12.0 if eye_status == "open" else (-blink_penalty)
             subject_bonus = 8.0 if len(boxes) > 0 else (-10.0 if require_subjects else 0.0)
             defect_penalty = (45.0 if is_mis else 0.0) + (40.0 if is_doc else 0.0)
 
@@ -1149,7 +1214,7 @@ class AIEngine:
             # Proven 3-Star Verdict Logic (so all sharp, well-exposed shots get 3★ Selects!)
             is_well_exposed = (results["exposure_issue"] == "none") if reject_exposure else True
             has_subjects = (len(boxes) > 0) if require_subjects else True
-            eyes_ok = (eye_status != "closed") if reject_closed_eyes else True
+            eyes_ok = (eye_status != "closed" and not blink_det) if reject_closed_eyes else True
             noise_ok = (not is_noisy) if reject_heavy_noise else True
 
             is_hopeless = (
@@ -1158,7 +1223,7 @@ class AIEngine:
                 or (reject_heavy_noise and is_noisy)
                 or best_sharpness < 4.5
                 or abs(exposure - 127.0) > 118.0
-                or (reject_closed_eyes and eye_status == "closed")
+                or (reject_closed_eyes and (eye_status == "closed" or blink_det))
             )
 
             if is_hopeless:
@@ -1245,28 +1310,39 @@ class AIEngine:
                 current_stack = [item]
         stacks.append(current_stack)
 
-        # Tag stacks and duplicate intent WITHOUT forcibly demoting good 3★ photos
+        # Tag bursts / stacks and crown hero frames
         for s_idx, group in enumerate(stacks, start=1):
             ranked_group = sorted(group, key=lambda x: x.get("quality_rank_score", 0.0), reverse=True)
             leader = ranked_group[0]
             leader_boxes = leader.get("subject_boxes", [])
+            burst_id = f"burst_{s_idx}"
+            burst_total = len(group)
 
             for pos, member in enumerate(ranked_group):
                 member["stack_id"] = s_idx
-                member["stack_size"] = len(group)
+                member["stack_size"] = burst_total
                 member["is_stack_leader"] = (pos == 0)
+                member["burst_id"] = burst_id
+                member["burst_total"] = burst_total
+                member["burst_index"] = pos + 1
+                member["is_hero"] = (pos == 0)
 
                 base_flags = [
                     f for f in member.get("flags", [])
-                    if f not in ("Near-Duplicate", "Creative Variation", "Highlight", "Stack Pick")
+                    if f not in ("Near-Duplicate", "Creative Variation", "Highlight", "Stack Pick", "Burst Hero", "Burst Sequence")
                 ]
 
-                if len(group) == 1:
+                if burst_total == 1:
                     member["duplicate_status"] = "unique"
                 elif pos == 0:
                     member["duplicate_status"] = "unique"
+                    member["hero_score"] = member.get("quality_rank_score", 0.0)
+                    member["hero_reason"] = f"Top focus (L{member.get('focus_level', 5)}) & open eyes"
                     base_flags.append("Stack Pick")
+                    base_flags.append("Burst Hero")
                 else:
+                    member["hero_path"] = leader.get("path")
+                    member["hero_filename"] = leader.get("filename", "")
                     ham = self._hamming_distance(member.get("dhash", "0"), leader.get("dhash", "0"))
                     sig_d = self._signature_distance(member.get("scene_signature"), leader.get("scene_signature"))
 
@@ -1283,6 +1359,7 @@ class AIEngine:
                         base_flags.append("Creative Variation")
                         if member.get("ai_rating", 2) == 2:
                             member["color_label"] = "purple"
+                    base_flags.append("Burst Sequence")
 
                 member["flags"] = base_flags
 
@@ -1306,6 +1383,7 @@ class AIEngine:
             exp = float(it.get("exposure", 127.0))
             subjs = int(it.get("subjects_detected", 0))
             eye_status = it.get("eye_status", "no_subject")
+            blink_det = bool(it.get("blink_detected", False))
 
             is_mis = bool(it.get("is_misfire"))
             is_doc = bool(it.get("is_document"))
@@ -1317,13 +1395,13 @@ class AIEngine:
                 or abs(exp - 127.0) > 120.0
                 or (reject_misfires and is_mis)
                 or (reject_documents and is_doc)
-                or (reject_closed_eyes and eye_status == "closed")
+                or (reject_closed_eyes and (eye_status == "closed" or blink_det))
                 or (reject_heavy_noise and is_noisy)
             )
             is_sharp = s >= sharpness_req
             is_well_exp = abs(exp - exp_center) <= exp_margin if reject_exposure else True
             has_sub = (subjs > 0) if require_subjects else True
-            eyes_ok = (eye_status != "closed") if reject_closed_eyes else True
+            eyes_ok = (eye_status != "closed" and not blink_det) if reject_closed_eyes else True
             noise_ok = (not is_noisy) if reject_heavy_noise else True
 
             base_flags = [f for f in it.get("flags", []) if f not in ("Soft Focus", "Blurry")]

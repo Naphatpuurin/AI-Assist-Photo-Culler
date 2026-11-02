@@ -292,7 +292,49 @@ export const translations = {
     status_export_warn: (errs) => `EXPORT WARNING // ${errs} ERRORS`,
     status_update_skipped: (v) => `UPDATE v${v} SKIPPED // WILL NOT REMIND FOR THIS RELEASE`,
     status_update_snoozed: 'UPDATE NOTIFICATION SNOOZED // WILL REMIND NEXT SESSION',
-    status_learning_override: (r, fn) => `LEARNING AI // RECORDED ${r}★ OVERRIDE FOR ${fn}`
+    status_learning_override: (r, fn) => `LEARNING AI // RECORDED ${r}★ OVERRIDE FOR ${fn}`,
+
+    // Burst Grouping & Hero Selection
+    burst_badge: (idx, total) => `BURST ${idx}/${total}`,
+    burst_hero: '👑 HERO',
+    burst_hero_of: (n) => `HERO FRAME · TOP OF ${n}`,
+    burst_strip_title: (n) => `⚡ Burst Sequence (${n} Photos)`,
+    btn_keep_hero: '👑 Keep Hero & Reject Rest [K]',
+    btn_compare_burst: '⚡ Compare Burst [C]',
+    btn_promote_top_2: '⭐ Promote Top 2',
+    burst_collapsed_badge: (n) => `⚡ ${n} Shots`,
+    toggle_collapse_bursts: '⚡ Collapse Bursts',
+    toggle_show_all_bursts: '⚡ Show All Burst Frames',
+
+    // Blink & Ocular Telemetry
+    eye_open_pct: (pct) => `${pct}% Open`,
+    blink_detected: '⚠️ BLINK DETECTED',
+    eye_open: '👁️ EYES OPEN',
+    eye_half_closed: '👁️ HALF-CLOSED',
+    group_eyes_open: (open, total, pct) => `Group Eyes: ${open}/${total} (${pct}%)`,
+    dossier_sec_eyes: 'OCULAR & BLINK TELEMETRY',
+    lbl_eye_openness: 'OPENNESS',
+    lbl_blink_verdict: 'STATUS',
+    lbl_group_ratio: 'GROUP RATIO',
+    lbl_eye_sharpness: 'EYE FOCUS',
+
+    // Compare Mode (2-Up / 4-Up with Synchronized Pan/Zoom)
+    mode_compare_2up: '2-UP COMPARE [C]',
+    mode_compare_4up: '4-UP COMPARE',
+    compare_sync_zoom: '🔒 Sync Pan & Zoom',
+    compare_sync_pan: 'Sync Pan',
+    compare_lock_eyes: '👁️ Lock to Eyes (200%)',
+    compare_zoom_fit: 'FIT',
+    compare_zoom_100: '100% (1:1)',
+    compare_zoom_200: '200% (2:1)',
+    compare_active_slot: 'ACTIVE SLOT',
+    compare_crown_winner: '👑 CROWN WINNER [W]',
+    compare_exit: 'GRID VIEW [Esc]',
+    compare_empty_hint: 'Select 2 to 4 photos or click [⚡ Compare Burst] to compare side-by-side.',
+    compare_slot_label: (n) => `SLOT ${n}`,
+    btn_add_to_compare: 'COMPARE +',
+    btn_remove_from_compare: 'REMOVE -',
+    compare_title: 'Side-by-Side Micro-Inspection'
   },
 
   th: {
@@ -585,6 +627,48 @@ export const translations = {
     status_export_warn: (errs) => `คำเตือนการส่งออก // พบ ${errs} ข้อผิดพลาด`,
     status_update_skipped: (v) => `ข้ามอัปเดต v${v} // จะไม่เตือนซ้ำสำหรับเวอร์ชันนี้`,
     status_update_snoozed: 'เลื่อนการแจ้งเตือนอัปเดตแล้ว // จะแจ้งเตือนอีกครั้งในเซสชันหน้า',
-    status_learning_override: (r, fn) => `AI เรียนรู้ // บันทึกการเปลี่ยนคะแนนเป็น ${r}★ สำหรับ ${fn}`
+    status_learning_override: (r, fn) => `AI เรียนรู้ // บันทึกการเปลี่ยนคะแนนเป็น ${r}★ สำหรับ ${fn}`,
+
+    // Burst Grouping & Hero Selection
+    burst_badge: (idx, total) => `ช็อตต่อเนื่อง ${idx}/${total}`,
+    burst_hero: '👑 ภาพดีที่สุด',
+    burst_hero_of: (n) => `ภาพดีที่สุด · อันดับ 1 จาก ${n} ภาพ`,
+    burst_strip_title: (n) => `⚡ ชุดภาพถ่ายต่อเนื่อง (${n} ภาพ)`,
+    btn_keep_hero: '👑 เก็บภาพดีที่สุด & คัดภาพอื่นออก [K]',
+    btn_compare_burst: '⚡ เปรียบเทียบชุดภาพนี้ [C]',
+    btn_promote_top_2: '⭐ เก็บ 2 ภาพที่ดีที่สุด',
+    burst_collapsed_badge: (n) => `⚡ ${n} ภาพในชุด`,
+    toggle_collapse_bursts: '⚡ ยุบกลุ่มภาพต่อเนื่อง',
+    toggle_show_all_bursts: '⚡ แสดงภาพต่อเนื่องทั้งหมด',
+
+    // Blink & Ocular Telemetry
+    eye_open_pct: (pct) => `ดวงตาเปิด ${pct}%`,
+    blink_detected: '⚠️ ตรวจพบการกะพริบตา',
+    eye_open: '👁️ ลืมตาชัดเจน',
+    eye_half_closed: '👁️ หรี่ตา / กึ่งหลับตา',
+    group_eyes_open: (open, total, pct) => `ลืมตาในกลุ่ม: ${open}/${total} (${pct}%)`,
+    dossier_sec_eyes: 'การตรวจวัดดวงตา & การกะพริบตา',
+    lbl_eye_openness: 'การเปิดของตา',
+    lbl_blink_verdict: 'สถานะดวงตา',
+    lbl_group_ratio: 'อัตราส่วนในกลุ่ม',
+    lbl_eye_sharpness: 'ความคมชัดดวงตา',
+
+    // Compare Mode (2-Up / 4-Up with Synchronized Pan/Zoom)
+    mode_compare_2up: 'เปรียบเทียบ 2 ภาพ [C]',
+    mode_compare_4up: 'เปรียบเทียบ 4 ภาพ',
+    compare_sync_zoom: '🔒 ซูม & เลื่อนภาพพร้อมกัน',
+    compare_sync_pan: 'เลื่อนภาพพร้อมกัน',
+    compare_lock_eyes: '👁️ ล็อคโฟกัสดวงตา (200%)',
+    compare_zoom_fit: 'พอดีจอ',
+    compare_zoom_100: '100% (1:1)',
+    compare_zoom_200: '200% (2:1)',
+    compare_active_slot: 'ช่องที่เลือก',
+    compare_crown_winner: '👑 เลือกเป็นภาพชนะเลิศ [W]',
+    compare_exit: 'กลับสู่มุมมองตาราง [Esc]',
+    compare_empty_hint: 'เลือกภาพ 2 ถึง 4 ภาพ หรือกด [⚡ เปรียบเทียบชุดภาพนี้] เพื่อดูเทียบกันแบบละเอียด',
+    compare_slot_label: (n) => `ช่องเปรียบเทียบ ${n}`,
+    btn_add_to_compare: 'เทียบภาพ +',
+    btn_remove_from_compare: 'นำออก -',
+    compare_title: 'การเปรียบเทียบภาพละเอียดเคียงข้างกัน'
   }
 };

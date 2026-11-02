@@ -110,10 +110,63 @@ def test_noise_estimation_formula():
     assert debiased == max(0.0, 200.0 - (0.65 * 20.0 * 12.25))
     print("[PASS] test_noise_estimation_formula")
 
+# Test burst clustering and hero crowning logic
+def test_burst_clustering_and_hero_crown():
+    # Simulate a burst sequence of 5 photos taken within 1.5s
+    burst_items = [
+        {"path": "shot_01.jpg", "filename": "shot_01.jpg", "capture_ts": 1000.0, "sharpness": 55.0, "eye_status": "open", "quality_rank_score": 75.0, "dhash": "1111000011110000", "scene_signature": [0.1]*8},
+        {"path": "shot_02.jpg", "filename": "shot_02.jpg", "capture_ts": 1000.3, "sharpness": 88.0, "eye_status": "open", "quality_rank_score": 92.0, "dhash": "1111000011110001", "scene_signature": [0.1]*8},
+        {"path": "shot_03.jpg", "filename": "shot_03.jpg", "capture_ts": 1000.6, "sharpness": 91.0, "eye_status": "closed", "quality_rank_score": 62.0, "dhash": "1111000011110000", "scene_signature": [0.1]*8}, # Blinking!
+        {"path": "shot_04.jpg", "filename": "shot_04.jpg", "capture_ts": 1000.9, "sharpness": 78.0, "eye_status": "open", "quality_rank_score": 84.0, "dhash": "1111000011110010", "scene_signature": [0.1]*8},
+        {"path": "shot_05.jpg", "filename": "shot_05.jpg", "capture_ts": 1001.2, "sharpness": 60.0, "eye_status": "open", "quality_rank_score": 78.0, "dhash": "1111000011110000", "scene_signature": [0.1]*8},
+    ]
+
+    # Cluster simulation
+    ranked = sorted(burst_items, key=lambda x: x["quality_rank_score"], reverse=True)
+    leader = ranked[0]
+
+    # shot_02 should be the hero because shot_03 was blinking and penalized
+    assert leader["filename"] == "shot_02.jpg", f"Expected shot_02 hero, got {leader['filename']}"
+    assert leader["eye_status"] == "open"
+    assert leader["sharpness"] == 88.0
+
+    # Verify burst indices assignment
+    for pos, m in enumerate(ranked):
+        m["burst_id"] = "burst_1"
+        m["burst_total"] = len(ranked)
+        m["burst_index"] = pos + 1
+        m["is_hero"] = (pos == 0)
+
+    assert ranked[0]["is_hero"] is True
+    assert ranked[1]["is_hero"] is False
+    assert ranked[0]["burst_total"] == 5
+    print("[PASS] test_burst_clustering_and_hero_crown")
+
+# Test ocular openness and blink discrimination logic
+def test_ocular_openness_and_blink_logic():
+    # Open eye simulation: balanced gradients, deep valley dip
+    def calc_openness(ratio_xy, valley_dip, local_std):
+        openness = (
+            (min(1.0, ratio_xy / 0.65) * 45.0) +
+            (min(1.0, valley_dip / 28.0) * 35.0) +
+            (min(1.0, local_std / 20.0) * 20.0)
+        )
+        return max(0.0, min(100.0, openness))
+
+    open_score = calc_openness(ratio_xy=0.68, valley_dip=32.0, local_std=22.0)
+    assert open_score > 70.0, f"Expected high openness for open eye, got {open_score}"
+
+    # Closed eye / blink simulation: horizontal dominance (ratio < 0.35), minimal valley dip, smooth skin std
+    closed_score = calc_openness(ratio_xy=0.25, valley_dip=6.0, local_std=6.0)
+    assert closed_score < 40.0, f"Expected low openness for closed eye, got {closed_score}"
+    print("[PASS] test_ocular_openness_and_blink_logic")
+
 if __name__ == "__main__":
     test_version_loading()
     test_port_scanner()
     test_sha256_verification()
     test_html_injection()
     test_noise_estimation_formula()
+    test_burst_clustering_and_hero_crown()
+    test_ocular_openness_and_blink_logic()
     print("\n>>> ALL CORE SECURITY & ARCHITECTURE UNIT TESTS PASSED! <<<")

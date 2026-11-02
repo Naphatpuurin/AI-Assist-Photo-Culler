@@ -154,6 +154,13 @@ class BatchPostProcessRequest(BaseModel):
     reject_heavy_noise: bool = False
 
 
+class BurstActionRequest(BaseModel):
+    action: str  # "keep_hero_reject_rest" | "pick_hero" | "promote_top_2"
+    burst_id: str | None = None
+    paths: list[str] = []
+    hero_path: str | None = None
+
+
 class FeedbackRequest(BaseModel):
     ai_rating: int
     user_rating: int
@@ -474,6 +481,62 @@ def post_process_batch(request: BatchPostProcessRequest):
             reject_heavy_noise=request.reject_heavy_noise
         )
         return sanitize_for_json({"status": "success", "analysis_map": updated_map})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/burst_action")
+async def burst_action(req: BurstActionRequest, request: Request):
+    if not is_authorized_session(request):
+        raise HTTPException(status_code=403, detail="Unauthorized API access: invalid or missing session token.")
+    try:
+        updated_map = {}
+        if req.action == "keep_hero_reject_rest":
+            for p in req.paths:
+                if p == req.hero_path:
+                    updated_map[p] = {
+                        "ai_rating": 3,
+                        "cull_status": "select",
+                        "color_label": "green",
+                        "manual_override": True,
+                        "flags": ["Burst Hero", "Stack Pick"]
+                    }
+                else:
+                    updated_map[p] = {
+                        "ai_rating": 1,
+                        "cull_status": "reject",
+                        "color_label": "red",
+                        "manual_override": True,
+                        "flags": ["Burst Sequence", "Burst Reject"]
+                    }
+        elif req.action == "pick_hero":
+            if req.hero_path:
+                updated_map[req.hero_path] = {
+                    "ai_rating": 3,
+                    "cull_status": "select",
+                    "color_label": "green",
+                    "manual_override": True,
+                    "flags": ["Burst Hero", "Stack Pick"]
+                }
+        elif req.action == "promote_top_2":
+            for idx, p in enumerate(req.paths):
+                if idx < 2:
+                    updated_map[p] = {
+                        "ai_rating": 3,
+                        "cull_status": "select",
+                        "color_label": "green",
+                        "manual_override": True,
+                        "flags": ["Burst Top Pick"]
+                    }
+                else:
+                    updated_map[p] = {
+                        "ai_rating": 1,
+                        "cull_status": "reject",
+                        "color_label": "red",
+                        "manual_override": True,
+                        "flags": ["Burst Sequence"]
+                    }
+        return sanitize_for_json({"status": "success", "action": req.action, "updated_ratings": updated_map})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

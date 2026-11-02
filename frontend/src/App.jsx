@@ -113,6 +113,15 @@ function App() {
   const [collapseStacks, setCollapseStacks] = useState(false);
   const [showSubjectBoxes, setShowSubjectBoxes] = useState(true);
 
+  // ---------------- Compare Mode (2-Up & 4-Up with Synchronized Pan/Zoom) ----------------
+  const [compareSlots, setCompareSlots] = useState([]);
+  const [activeCompareSlot, setActiveCompareSlot] = useState(0);
+  const [compareZoom, setCompareZoom] = useState(1.0);
+  const [comparePan, setComparePan] = useState({ x: 0, y: 0 });
+  const [syncZoomPan, setSyncZoomPan] = useState(true);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   // ---------------- Automatic Detection Filter Tab ----------------
   const [activeFilter, setActiveFilter] = useState('all');
 
@@ -466,7 +475,7 @@ function App() {
       case 'eyes_open':
         return info.eye_status === 'open';
       case 'closed_eyes':
-        return info.eye_status === 'closed';
+        return info.eye_status === 'closed' || Boolean(info.blink_detected);
       case 'cant_tell_eyes':
         return info.eye_status === 'cant_tell';
       case 'blurry':
@@ -500,7 +509,7 @@ function App() {
     maybes: images.filter(i => analysisData[i.path]?.ai_rating === 2).length,
     rejects: images.filter(i => analysisData[i.path]?.ai_rating === 1).length,
     eyes_open: images.filter(i => analysisData[i.path]?.eye_status === 'open').length,
-    closed_eyes: images.filter(i => analysisData[i.path]?.eye_status === 'closed').length,
+    closed_eyes: images.filter(i => analysisData[i.path]?.eye_status === 'closed' || analysisData[i.path]?.blink_detected).length,
     cant_tell_eyes: images.filter(i => analysisData[i.path]?.eye_status === 'cant_tell').length,
     blurry: images.filter(i => analysisData[i.path]?.is_blurry).length,
     heavy_noise: images.filter(i => analysisData[i.path]?.is_noisy).length,
@@ -630,6 +639,98 @@ function App() {
     }));
   }, []);
 
+  // ---------------- Burst Grouping & Hero Helpers ----------------
+  const currentBurstImages = useMemo(() => {
+    if (!activeAnalysis?.burst_id || (activeAnalysis.burst_total || 0) <= 1) {
+      return [];
+    }
+    return images.filter(img => analysisData[img.path]?.burst_id === activeAnalysis.burst_id);
+  }, [images, analysisData, activeAnalysis]);
+
+  const handleBurstAction = useCallback(async (action) => {
+    if (!currentBurstImages.length || !activeAnalysis?.burst_id) return;
+    const heroImg = currentBurstImages.find(img => analysisData[img.path]?.is_hero) || currentBurstImages[0];
+    const payload = {
+      action,
+      burst_id: activeAnalysis.burst_id,
+      paths: currentBurstImages.map(img => img.path),
+      hero_path: heroImg?.path
+    };
+
+    try {
+      const response = await fetch('/api/burst_action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-App-Session-Token': sessionToken
+        },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json();
+      if (data.status === 'success' && data.updated_ratings) {
+        setAnalysisData(prev => {
+          const next = { ...prev };
+          Object.entries(data.updated_ratings).forEach(([p, val]) => {
+            if (next[p]) {
+              next[p] = { ...next[p], ...val };
+            }
+          });
+          return next;
+        });
+      }
+    } catch (err) {
+      console.error('Burst action failed:', err);
+    }
+  }, [currentBurstImages, activeAnalysis, sessionToken, analysisData]);
+
+  // ---------------- Compare Mode (2-Up & 4-Up) Handlers ----------------
+  const openCompareMode = useCallback((mode = 'compare_2up', candidateImages = null) => {
+    let slots = [];
+    if (candidateImages && candidateImages.length > 0) {
+      slots = candidateImages.slice(0, mode === 'compare_4up' ? 4 : 2);
+    } else if (currentBurstImages.length >= 2) {
+      slots = currentBurstImages.slice(0, mode === 'compare_4up' ? 4 : 2);
+    } else {
+      const curIdx = selectedImageIndex >= 0 ? selectedImageIndex : 0;
+      const first = filteredImages[curIdx] || images[0];
+      const second = filteredImages[curIdx + 1] || filteredImages[curIdx - 1] || first;
+      slots = [first, second];
+      if (mode === 'compare_4up') {
+        const third = filteredImages[curIdx + 2] || first;
+        const fourth = filteredImages[curIdx + 3] || second;
+        slots = [first, second, third, fourth];
+      }
+    }
+
+    slots.forEach(img => {
+      if (img && !analysisData[img.path]) {
+        analyzeSingleImage(img.path);
+      }
+    });
+
+    setCompareSlots(slots);
+    setActiveCompareSlot(0);
+    setCompareZoom(1.0);
+    setComparePan({ x: 0, y: 0 });
+    setViewMode(mode);
+  }, [currentBurstImages, selectedImageIndex, filteredImages, images, analysisData, analyzeSingleImage]);
+
+  const lockToEyes = useCallback(() => {
+    const targetImg = compareSlots[activeCompareSlot] || activeImage;
+    if (!targetImg) return;
+    const info = analysisData[targetImg.path];
+    const eyeBox = info?.eye_boxes?.[0] || info?.subject_boxes?.[0];
+    if (eyeBox) {
+      const centerX = (eyeBox.x + (eyeBox.w || 10) / 2) - 50;
+      const centerY = (eyeBox.y + (eyeBox.h || 10) / 2) - 50;
+      setCompareZoom(2.0);
+      setComparePan({ x: -centerX * 2.0, y: -centerY * 2.0 });
+    } else {
+      setCompareZoom(2.0);
+      setComparePan({ x: 0, y: -20 });
+    }
+  }, [compareSlots, activeCompareSlot, activeImage, analysisData]);
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (showUpdateModal) {
@@ -646,38 +747,66 @@ function App() {
       }
       if (filteredImages.length === 0) return;
 
+      const isCompare = viewMode === 'compare_2up' || viewMode === 'compare_4up';
+      const activeSlotTarget = isCompare ? (compareSlots[activeCompareSlot] || activeImage) : activeImage;
+
       if (e.key === 'ArrowRight') {
         e.preventDefault();
-        if (selectedImageIndex < filteredImages.length - 1) {
+        if (isCompare) {
+          const maxSlots = viewMode === 'compare_4up' ? 4 : 2;
+          setActiveCompareSlot(prev => (prev + 1) % maxSlots);
+        } else if (selectedImageIndex < filteredImages.length - 1) {
           const nextIdx = selectedImageIndex + 1;
           setSelectedImageIndex(nextIdx);
           analyzeSingleImage(filteredImages[nextIdx].path);
         }
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        if (selectedImageIndex > 0) {
+        if (isCompare) {
+          const maxSlots = viewMode === 'compare_4up' ? 4 : 2;
+          setActiveCompareSlot(prev => (prev - 1 + maxSlots) % maxSlots);
+        } else if (selectedImageIndex > 0) {
           const prevIdx = selectedImageIndex - 1;
           setSelectedImageIndex(prevIdx);
           analyzeSingleImage(filteredImages[prevIdx].path);
         }
       } else if (e.key === '1' || e.key === '2' || e.key === '3') {
-        if (activeImage) setManualRating(activeImage.path, parseInt(e.key, 10));
+        if (activeSlotTarget) setManualRating(activeSlotTarget.path, parseInt(e.key, 10));
       } else if (e.key.toLowerCase() === 'p') {
-        if (activeImage) setManualRating(activeImage.path, 3);
+        if (activeSlotTarget) setManualRating(activeSlotTarget.path, 3);
       } else if (e.key.toLowerCase() === 'x') {
-        if (activeImage) setManualRating(activeImage.path, 1);
+        if (activeSlotTarget) setManualRating(activeSlotTarget.path, 1);
       } else if (e.key.toLowerCase() === 'h') {
-        if (activeImage) toggleHighlight(activeImage.path);
+        if (activeSlotTarget) toggleHighlight(activeSlotTarget.path);
+      } else if (e.key.toLowerCase() === 'c') {
+        e.preventDefault();
+        if (viewMode === 'gallery' || viewMode === 'loupe') {
+          openCompareMode('compare_2up');
+        } else if (viewMode === 'compare_2up') {
+          openCompareMode('compare_4up');
+        } else {
+          setViewMode('gallery');
+        }
+      } else if (e.key.toLowerCase() === 'k') {
+        if (currentBurstImages.length > 1) {
+          e.preventDefault();
+          handleBurstAction('keep_hero_reject_rest');
+        }
+      } else if (e.key.toLowerCase() === 'w' && isCompare) {
+        if (activeSlotTarget) {
+          e.preventDefault();
+          setManualRating(activeSlotTarget.path, 3);
+        }
       } else if (e.key === ' ') {
         e.preventDefault();
         setViewMode(prev => (prev === 'gallery' ? 'loupe' : 'gallery'));
-      } else if (e.key === 'Escape' && viewMode === 'loupe') {
+      } else if (e.key === 'Escape' && viewMode !== 'gallery') {
         setViewMode('gallery');
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showUpdateModal, updateState, showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, analyzeSingleImage, setManualRating, toggleHighlight]);
+  }, [showUpdateModal, updateState, showAboutModal, dialogMode, filteredImages, selectedImageIndex, activeImage, viewMode, compareSlots, activeCompareSlot, currentBurstImages, analyzeSingleImage, setManualRating, toggleHighlight, openCompareMode, handleBurstAction]);
 
   const loadDirectoryFromPath = async (dirPath) => {
     const trimmed = dirPath.trim();
@@ -1299,7 +1428,7 @@ function App() {
               onClick={() => { setCollapseStacks(prev => !prev); setSelectedImageIndex(0); }}
               title={t.collapse_stacks_tooltip}
             >
-              {collapseStacks ? t.stacks_collapsed : t.stacks_expanded}
+              {collapseStacks ? t.toggle_collapse_bursts : t.toggle_show_all_bursts}
             </button>
             <div className="view-mode-switch" role="group" aria-label="View mode">
               <button
@@ -1321,6 +1450,24 @@ function App() {
                 }}
               >
                 {t.mode_loupe}
+              </button>
+              <button
+                type="button"
+                className="mode-tab"
+                aria-pressed={viewMode === 'compare_2up' ? 'true' : 'false'}
+                disabled={filteredImages.length === 0}
+                onClick={() => openCompareMode('compare_2up')}
+              >
+                {t.mode_compare_2up}
+              </button>
+              <button
+                type="button"
+                className="mode-tab"
+                aria-pressed={viewMode === 'compare_4up' ? 'true' : 'false'}
+                disabled={filteredImages.length === 0}
+                onClick={() => openCompareMode('compare_4up')}
+              >
+                {t.mode_compare_4up}
               </button>
             </div>
           </div>
@@ -1438,9 +1585,19 @@ function App() {
                         alt={img.filename}
                         loading="lazy"
                       />
-                      {info && info.stack_size > 1 && (
-                        <span className="stack-badge-overlay">
-                          {t.stack_badge(info.stack_id, info.is_stack_leader, info.stack_size)}
+                      {info && (info.burst_total > 1 || info.stack_size > 1) && (
+                        <span className={`burst-badge-overlay ${info.is_hero || info.is_stack_leader ? 'is-hero' : ''}`}>
+                          {info.is_hero || info.is_stack_leader
+                            ? t.burst_hero
+                            : t.burst_badge(info.burst_index || 1, info.burst_total || info.stack_size)}
+                        </span>
+                      )}
+                      {info && (info.blink_detected || info.eye_status === 'closed') && (
+                        <span
+                          className="burst-badge-overlay"
+                          style={{ top: '27px', background: 'rgba(224, 108, 117, 0.90)', borderColor: '#e06c75', color: '#fff' }}
+                        >
+                          {t.blink_detected}
                         </span>
                       )}
                       {info?.flags?.length > 0 && (
@@ -1450,6 +1607,18 @@ function App() {
                           ))}
                         </div>
                       )}
+                      <button
+                        type="button"
+                        className="card-loupe-overlay-btn"
+                        style={{ right: '56px' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openCompareMode('compare_2up', [img]);
+                        }}
+                        title="Compare side-by-side [C]"
+                      >
+                        {t.btn_add_to_compare}
+                      </button>
                       <button
                         type="button"
                         className="card-loupe-overlay-btn"
@@ -1496,7 +1665,7 @@ function App() {
               </p>
             </div>
           )
-        ) : (
+        ) : viewMode === 'loupe' ? (
           <div className="loupe-specimen-stage">
             {activeImage && (
               <>
@@ -1559,6 +1728,74 @@ function App() {
                   </button>
                 </div>
 
+                {/* Docked Burst Filmstrip when active photo belongs to a burst sequence */}
+                {currentBurstImages.length > 1 && (
+                  <div className="burst-strip-panel">
+                    <div className="burst-strip-header">
+                      <div className="burst-strip-title">
+                        <span>⚡</span>
+                        <span>{t.burst_strip_title(currentBurstImages.length)}</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '10px', marginLeft: '6px' }}>
+                          {activeAnalysis?.is_hero ? t.burst_hero : `Hero: ${activeAnalysis?.hero_filename || '...'}`}
+                        </span>
+                      </div>
+                      <div className="burst-strip-actions">
+                        <button
+                          type="button"
+                          className="burst-strip-btn hero-action"
+                          title="Keep the highest scoring hero shot as 3★ and mark other burst frames as 1★ reject [K]"
+                          onClick={() => handleBurstAction('keep_hero_reject_rest')}
+                        >
+                          {t.btn_keep_hero}
+                        </button>
+                        <button
+                          type="button"
+                          className="burst-strip-btn"
+                          onClick={() => openCompareMode('compare_2up', currentBurstImages)}
+                        >
+                          {t.btn_compare_burst}
+                        </button>
+                        <button
+                          type="button"
+                          className="burst-strip-btn"
+                          onClick={() => handleBurstAction('promote_top_2')}
+                        >
+                          {t.btn_promote_top_2}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="burst-filmstrip-scroll">
+                      {currentBurstImages.map((bImg, bIdx) => {
+                        const bInfo = analysisData[bImg.path];
+                        const isCur = activeImage?.path === bImg.path;
+                        const isHero = bInfo?.is_hero || bInfo?.is_stack_leader;
+
+                        return (
+                          <div
+                            key={bImg.path}
+                            className={`burst-filmstrip-card ${isCur ? 'active' : ''} ${isHero ? 'hero' : ''}`}
+                            onClick={() => {
+                              const foundIdx = filteredImages.findIndex(i => i.path === bImg.path);
+                              if (foundIdx >= 0) selectCard(foundIdx);
+                            }}
+                            title={`${bImg.filename} ${bInfo ? `(L${bInfo.focus_level})` : ''}`}
+                          >
+                            <img
+                              src={getImageUrl('/api/thumbnail', { path: bImg.path })}
+                              alt={bImg.filename}
+                              loading="lazy"
+                            />
+                            <span className="burst-card-index">#{bIdx + 1}</span>
+                            {isHero && <span className="burst-card-hero-icon">👑</span>}
+                            {bInfo?.blink_detected && <span style={{ position: 'absolute', top: 2, left: 2, fontSize: '9px' }}>⚠️</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="loupe-strip-bar">
                   <span>{activeImage.filename}</span>
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
@@ -1570,6 +1807,13 @@ function App() {
                       />
                       <span>{t.roi_boxes}</span>
                     </label>
+                    <button
+                      type="button"
+                      className="burst-strip-btn"
+                      onClick={() => openCompareMode('compare_2up', currentBurstImages.length >= 2 ? currentBurstImages : null)}
+                    >
+                      {t.mode_compare_2up}
+                    </button>
                     <button
                       type="button"
                       className={`override-btn ${activeAnalysis?.is_highlight ? 'active-3' : ''}`}
@@ -1601,6 +1845,222 @@ function App() {
                 </div>
               </>
             )}
+          </div>
+        ) : (
+          /* Compare Mode (2-Up & 4-Up with Synchronized Pan/Zoom) */
+          <div className="compare-stage-wrapper">
+            <div className="compare-top-bar">
+              <div className="compare-title-group">
+                <span style={{ fontWeight: 700, color: 'var(--vermilion)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>⚖️</span>
+                  <span>{viewMode === 'compare_4up' ? t.mode_compare_4up : t.mode_compare_2up}</span>
+                </span>
+                <span style={{ color: 'var(--text-muted)' }}>
+                  {t.compare_title}
+                </span>
+              </div>
+
+              <div className="compare-controls-group">
+                <label style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', marginRight: '6px' }}>
+                  <input
+                    type="checkbox"
+                    checked={syncZoomPan}
+                    onChange={(e) => setSyncZoomPan(e.target.checked)}
+                  />
+                  <span>{t.compare_sync_zoom}</span>
+                </label>
+
+                <button
+                  type="button"
+                  className={`burst-strip-btn ${compareZoom === 1.0 ? 'hero-action' : ''}`}
+                  onClick={() => { setCompareZoom(1.0); setComparePan({ x: 0, y: 0 }); }}
+                >
+                  {t.compare_zoom_fit}
+                </button>
+                <button
+                  type="button"
+                  className={`burst-strip-btn ${compareZoom === 1.5 ? 'hero-action' : ''}`}
+                  onClick={() => { setCompareZoom(1.5); }}
+                >
+                  {t.compare_zoom_100}
+                </button>
+                <button
+                  type="button"
+                  className={`burst-strip-btn ${compareZoom === 2.0 ? 'hero-action' : ''}`}
+                  onClick={() => { setCompareZoom(2.0); }}
+                >
+                  {t.compare_zoom_200}
+                </button>
+
+                <button
+                  type="button"
+                  className="burst-strip-btn hero-action"
+                  title="Align and center 200% zoom directly on detected eyes"
+                  onClick={lockToEyes}
+                >
+                  {t.compare_lock_eyes}
+                </button>
+
+                <button
+                  type="button"
+                  className="burst-strip-btn"
+                  onClick={() => openCompareMode(viewMode === 'compare_2up' ? 'compare_4up' : 'compare_2up')}
+                >
+                  {viewMode === 'compare_2up' ? '4-UP' : '2-UP'}
+                </button>
+
+                <button
+                  type="button"
+                  className="nr-btn"
+                  style={{ width: 'auto', padding: '4px 10px', marginLeft: '6px' }}
+                  onClick={() => setViewMode('gallery')}
+                >
+                  <span>{t.compare_exit}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className={`compare-grid-container ${viewMode === 'compare_4up' ? 'mode-4up' : 'mode-2up'}`}>
+              {(viewMode === 'compare_4up' ? [0, 1, 2, 3] : [0, 1]).map((slotIdx) => {
+                const img = compareSlots[slotIdx];
+                const info = img ? analysisData[img.path] : null;
+                const isFocused = activeCompareSlot === slotIdx;
+                const isHero = info?.is_hero || info?.is_stack_leader;
+
+                return (
+                  <div
+                    key={`slot-${slotIdx}`}
+                    className={`compare-slot-pane ${isFocused ? 'active-slot' : ''}`}
+                    onClick={() => setActiveCompareSlot(slotIdx)}
+                  >
+                    {img && (
+                      <div className="compare-pane-header">
+                        <div className="compare-slot-badge">
+                          <span>{t.compare_slot_label(slotIdx + 1)}:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>
+                            {img.filename}
+                          </span>
+                          {info && (
+                            <span style={{ color: '#61afef', marginLeft: '4px' }}>
+                              L{info.focus_level} · {info.sharpness}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                          {isHero && (
+                            <span className="burst-badge-overlay is-hero" style={{ position: 'static' }}>
+                              {t.burst_hero}
+                            </span>
+                          )}
+                          {info?.eye_status && (
+                            <span
+                              className={`burst-badge-overlay ${info.blink_detected || info.eye_status === 'closed' ? 'tag-warn' : ''}`}
+                              style={{ position: 'static' }}
+                            >
+                              {info.blink_detected || info.eye_status === 'closed' ? '⚠️ BLINK' : '👁️ OPEN'}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {img ? (
+                      <div
+                        className={`compare-viewport ${isPanning ? 'panning' : ''}`}
+                        onMouseDown={(e) => {
+                          setIsPanning(true);
+                          setPanStart({ x: e.clientX - comparePan.x, y: e.clientY - comparePan.y });
+                        }}
+                        onMouseMove={(e) => {
+                          if (!isPanning) return;
+                          setComparePan({
+                            x: e.clientX - panStart.x,
+                            y: e.clientY - panStart.y
+                          });
+                        }}
+                        onMouseUp={() => setIsPanning(false)}
+                        onMouseLeave={() => setIsPanning(false)}
+                        onWheel={(e) => {
+                          e.preventDefault();
+                          const delta = e.deltaY < 0 ? 0.2 : -0.2;
+                          setCompareZoom(prev => Math.min(4.0, Math.max(1.0, parseFloat((prev + delta).toFixed(1)))));
+                        }}
+                      >
+                        <img
+                          src={getImageUrl('/api/image', { path: img.path })}
+                          alt={img.filename}
+                          style={{
+                            transform: `scale(${compareZoom}) translate(${comparePan.x / compareZoom}px, ${comparePan.y / compareZoom}px)`
+                          }}
+                        />
+
+                        {showSubjectBoxes && info?.eye_boxes?.map((eb, eidx) => (
+                          <div
+                            key={`cmp-eye-${eidx}`}
+                            className="yolo-eye-box"
+                            style={{
+                              left: `${eb.x}%`,
+                              top: `${eb.y}%`,
+                              width: `${eb.w}%`,
+                              height: `${eb.h}%`,
+                              transform: `scale(${compareZoom}) translate(${comparePan.x / compareZoom}px, ${comparePan.y / compareZoom}px)`
+                            }}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="compare-slot-empty">
+                        <span>{t.compare_slot_label(slotIdx + 1)}</span>
+                        <span>{t.compare_empty_hint}</span>
+                      </div>
+                    )}
+
+                    {img && (
+                      <div className="compare-pane-footer">
+                        <div className="compare-rating-pill">
+                          <button
+                            type="button"
+                            className={`mini-star-btn ${info?.ai_rating === 3 ? 'active-3' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); setManualRating(img.path, 3); }}
+                          >
+                            3★ Pick
+                          </button>
+                          <button
+                            type="button"
+                            className={`mini-star-btn ${info?.ai_rating === 2 ? 'active-2' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); setManualRating(img.path, 2); }}
+                          >
+                            2★
+                          </button>
+                          <button
+                            type="button"
+                            className={`mini-star-btn ${info?.ai_rating === 1 ? 'active-1' : ''}`}
+                            onClick={(e) => { e.stopPropagation(); setManualRating(img.path, 1); }}
+                          >
+                            1★ Reject
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          className="burst-strip-btn hero-action"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setManualRating(img.path, 3);
+                            if (info?.burst_id) {
+                              handleBurstAction('keep_hero_reject_rest');
+                            }
+                          }}
+                        >
+                          {t.compare_crown_winner}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
       </main>
@@ -1705,6 +2165,38 @@ function App() {
                   height: '100%',
                   width: `${activeAnalysis?.noise_score || 0}%`,
                   background: (activeAnalysis?.noise_score || 0) > 65 ? '#E06C75' : (activeAnalysis?.noise_score || 0) > 35 ? '#E5C07B' : '#98C379',
+                  transition: 'width 0.3s ease'
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Ocular & Blink Telemetry */}
+          <div className="dossier-block">
+            <div className="dossier-role-row">
+              <span>{t.dossier_sec_eyes}</span>
+              <span className={`dossier-lock-tag ${activeAnalysis?.blink_detected || activeAnalysis?.eye_status === 'closed' ? 'tag-warn' : ''}`}>
+                {activeAnalysis?.blink_detected || activeAnalysis?.eye_status === 'closed'
+                  ? t.blink_detected
+                  : activeAnalysis?.eye_status === 'open'
+                  ? t.eye_open
+                  : activeAnalysis?.eye_status === 'half_closed'
+                  ? t.eye_half_closed
+                  : (activeAnalysis?.eye_status || 'SCAN').toUpperCase()}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px', fontFamily: 'var(--font-mono)', fontSize: '10px' }}>
+              <div><strong>{t.lbl_eye_openness}:</strong> {activeAnalysis?.eye_openness_pct != null ? `${activeAnalysis.eye_openness_pct}%` : '--%'}</div>
+              <div><strong>{t.lbl_eye_sharpness}:</strong> {activeAnalysis?.eye_focus_score ? `L${activeAnalysis.eye_focus_score}` : 'L--'}</div>
+              <div><strong>{t.lbl_group_ratio}:</strong> {activeAnalysis?.group_eye_ratio || 'N/A'}</div>
+              <div><strong>{t.lbl_blink_verdict}:</strong> {activeAnalysis?.blink_detected ? 'BLINK' : 'CLEAR'}</div>
+            </div>
+            <div style={{ marginTop: '6px', height: '4px', background: 'var(--border-subtle)', borderRadius: '2px', overflow: 'hidden' }}>
+              <div
+                style={{
+                  height: '100%',
+                  width: `${activeAnalysis?.eye_openness_pct ?? 100}%`,
+                  background: (activeAnalysis?.eye_openness_pct ?? 100) < 40 ? '#E06C75' : (activeAnalysis?.eye_openness_pct ?? 100) < 65 ? '#E5C07B' : '#98C379',
                   transition: 'width 0.3s ease'
                 }}
               />
