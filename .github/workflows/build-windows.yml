@@ -64,7 +64,8 @@ jobs:
 
       - name: Generate Windows Release Checksums
         run: |
-          Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File -Encoding ascii release/SHA256SUMS.txt
+          $hashes = Get-ChildItem release -File | Where-Object { $_.Name -ne "SHA256SUMS.txt" -and $_.Extension -ne ".wixpdb" } | Get-FileHash -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $(Split-Path $_.Path -Leaf)" }
+          $hashes | Out-File -Encoding ascii release/SHA256SUMS.txt
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
