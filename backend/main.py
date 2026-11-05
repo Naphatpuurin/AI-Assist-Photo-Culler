@@ -54,10 +54,10 @@ def load_app_version():
             try:
                 with open(c, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                    return data.get("version", "1.1.0"), data.get("build", 110)
+                    return data.get("version", "1.1.1"), data.get("build", 111)
             except Exception:
                 pass
-    return "1.1.0", 110
+    return "1.1.1", 111
 
 APP_VERSION, APP_BUILD = load_app_version()
 
@@ -1010,6 +1010,13 @@ async def serve_index():
             f"<script>\n"
             f"  window.__APP_SESSION_TOKEN__ = '{APP_SESSION_TOKEN}';\n"
             f"  window.__API_PORT__ = {CURRENT_PORT};\n"
+            f"  window.__JS_ERRORS__ = [];\n"
+            f"  window.addEventListener('error', function(e) {{\n"
+            f"    window.__JS_ERRORS__.push(e.message + ' at ' + e.filename + ':' + e.lineno + ':' + e.colno + '\\n' + (e.error ? e.error.stack : ''));\n"
+            f"  }});\n"
+            f"  window.addEventListener('unhandledrejection', function(e) {{\n"
+            f"    window.__JS_ERRORS__.push('Promise rejection: ' + (e.reason ? (e.reason.stack || e.reason) : 'unknown'));\n"
+            f"  }});\n"
             f"</script>\n"
         )
         if "<head>" in html:
@@ -1039,6 +1046,20 @@ async def serve_static_root(file_name: str):
     raise HTTPException(status_code=404, detail="File not found")
 
 
+def wait_for_server(port, timeout=15.0):
+    start = time.time()
+    while time.time() - start < timeout:
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                s.settimeout(0.2)
+                if s.connect_ex(('127.0.0.1', port)) == 0:
+                    return True
+        except Exception:
+            pass
+        time.sleep(0.05)
+    return False
+
+
 def run_server():
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=CURRENT_PORT)
@@ -1049,16 +1070,17 @@ if __name__ == "__main__":
     import webview
     import time
 
-    t = threading.Thread(target=run_server)
-    t.daemon = True
+    t = threading.Thread(target=run_server, daemon=True)
     t.start()
 
-    time.sleep(1.5)
+    # Wait until local uvicorn server has bound port and is ready to accept connections
+    wait_for_server(CURRENT_PORT, timeout=15.0)
 
     webview_window = webview.create_window(
         'MicMose Photo Culler Pro',
         f'http://127.0.0.1:{CURRENT_PORT}',
         width=1440,
-        height=890
+        height=890,
+        background_color='#11120F'
     )
     webview.start()

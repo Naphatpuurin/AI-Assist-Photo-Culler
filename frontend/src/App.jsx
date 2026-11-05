@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import './App.css'
 import logoRegular from './assets/logo_regular.png'
 import { translations } from './i18n'
@@ -138,8 +138,8 @@ function App() {
     gpu_util_percent: 0,
     vram_used_mb: 0,
     vram_total_mb: 8151,
-    app_version: '1.1.0',
-    app_build: 110,
+    app_version: '1.1.1',
+    app_build: 111,
     learning: {
       total_feedback_events: 0,
       focus_bias: 0,
@@ -658,11 +658,10 @@ function App() {
     };
 
     try {
-      const response = await fetch('/api/burst_action', {
+      const response = await apiFetch('/api/burst_action', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-App-Session-Token': sessionToken
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(payload)
       });
@@ -681,7 +680,7 @@ function App() {
     } catch (err) {
       console.error('Burst action failed:', err);
     }
-  }, [currentBurstImages, activeAnalysis, sessionToken, analysisData]);
+  }, [currentBurstImages, activeAnalysis, analysisData]);
 
   // ---------------- Compare Mode (2-Up & 4-Up) Handlers ----------------
   const openCompareMode = useCallback((mode = 'compare_2up', candidateImages = null) => {
@@ -2562,7 +2561,7 @@ function App() {
                   <div className="settings-updater-card">
                     <div className="hw-row">
                       <span className="hw-k">{t.installed_build_lbl}</span>
-                      <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.1.0'} // BUILD {hwStatus.app_build || '110'}</span>
+                      <span className="hw-v highlight">VERSION {hwStatus.app_version || '1.1.1'} // BUILD {hwStatus.app_build || '111'}</span>
                     </div>
                     <div className="hw-row">
                       <span className="hw-k">{t.release_channel_lbl}</span>
@@ -2636,7 +2635,7 @@ function App() {
                   />
                   <div className="about-hero-text">
                     <h2 className="about-title">{t.about_title}</h2>
-                    <div className="about-version">VERSION {hwStatus.app_version || '1.1.0'} // BUILD {hwStatus.app_build || '110'} // {t.about_prod_release}</div>
+                    <div className="about-version">VERSION {hwStatus.app_version || '1.1.1'} // BUILD {hwStatus.app_build || '111'} // {t.about_prod_release}</div>
                     <div className="about-author">{t.about_author}</div>
                     <div className="about-links-row" style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px' }}>
                       <a

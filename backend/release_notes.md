@@ -1,4 +1,4 @@
-# MicMose Photo Culler Pro v1.1.0 (Build 110) — Feature Release (Windows, macOS & Linux)
+# MicMose Photo Culler Pro v1.1.1 (Build 111) — Critical Patch Release (Windows, macOS & Linux)
 
 High-throughput, AI-assisted photo culling & telemetric inspection studio built for wedding, portrait, and commercial photographers.
 
@@ -6,7 +6,7 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 #### 🐧 Linux (All Distributions)
 - **`MicMose-Photo-Culler-Pro-x86_64.AppImage`** — Universal double-clickable Linux AppImage (Ubuntu, Debian, Fedora, Arch, Mint, Pop!_OS, openSUSE). Runs standalone without installation.
-- **`MicMose-Photo-Culler-Pro_1.1.0_amd64.deb`** — Native Debian / Ubuntu / Mint package with system desktop shortcut & application menu icon (`sudo dpkg -i MicMose-Photo-Culler-Pro_1.1.0_amd64.deb`).
+- **`MicMose-Photo-Culler-Pro_1.1.1_amd64.deb`** — Native Debian / Ubuntu / Mint package with system desktop shortcut & application menu icon (`sudo dpkg -i MicMose-Photo-Culler-Pro_1.1.1_amd64.deb`).
 - **`MicMose-Photo-Culler-Pro-Linux-x86_64.tar.gz`** — Portable Linux tarball archive with standalone launcher script (`./run.sh`).
 
 #### 🍏 macOS (Apple Silicon & Intel)
@@ -14,6 +14,7 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 #### 🪟 Windows (x64)
 - **`MicMose Photo Culler Pro.exe`** — Portable standalone Windows application. Run directly anywhere without installation.
+- **`MicMose-Photo-Culler-Pro-Portable.exe`** — Standalone portable Windows executable.
 - **`MicMose-Photo-Culler-Pro-Setup.exe`** — Themed Windows Setup Wizard installer with Start Menu and Desktop shortcuts.
 - **`MicMose-Photo-Culler-Pro.msi`** — Native Windows Installer database for enterprise distribution and silent deployment (`msiexec /i MicMose-Photo-Culler-Pro.msi /qn`).
 - **`MicMoseStudio.cer`** — Official Studio Authenticode public certificate for publisher verification.
@@ -23,7 +24,17 @@ High-throughput, AI-assisted photo culling & telemetric inspection studio built 
 
 ---
 
-### 🚀 What's New in v1.1.0 (Build 110)
+### 🛠️ What's Fixed & Improved in v1.1.1 (Build 111)
+
+- **🩹 Fixed Startup Blank/White Screen Crash**:
+  - Resolved runtime JavaScript ReferenceError where React hook `useMemo` and authorization token `sessionToken` were referenced before declaration in the production bundle.
+  - Eliminated server-startup race condition on Windows by replacing arbitrary `sleep(1.5)` with proactive TCP socket readiness polling (`wait_for_server`) up to 15 seconds.
+  - Hardened PyWebView window creation with matching dark editorial canvas background (`#11120F`) to eliminate white canvas flashes.
+  - Added `pywebview` and `webview.platforms.winforms` to PyInstaller hidden imports.
+
+---
+
+### 🚀 Major Features in v1.1.x
 
 - **⚡ 1. Burst Photo Grouping & Hero Frame Selection**:
   - Automatically clusters high-speed sequences within dynamic time windows ($\Delta t \le 1.5$–$2.0$s) and visual perceptual distance (`dHash` $\le 12$).

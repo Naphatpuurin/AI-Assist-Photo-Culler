@@ -19,7 +19,7 @@ a = Analysis(
         ('app.png', '.'),
         ('version.json', '.')
     ] + ort_datas + rawpy_datas,
-    hiddenimports=['onnxruntime', 'pynvml', 'rawpy', 'exifread', 'raw_utils'],
+    hiddenimports=['onnxruntime', 'pynvml', 'rawpy', 'exifread', 'raw_utils', 'pywebview', 'webview.platforms.winforms'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

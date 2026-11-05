@@ -1,7 +1,7 @@
 # MicMose Photo Culler Pro
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/Release-v1.1.0-emerald.svg)](https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases/tag/v1.1.0)
+[![Version](https://img.shields.io/badge/Release-v1.1.1-emerald.svg)](https://github.com/Naphatpuurin/AI-Assist-Photo-Culler/releases/tag/v1.1.1)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![React](https://img.shields.io/badge/React-19.2-61dafb.svg)](https://react.dev/)
 [![Vite](https://img.shields.io/badge/Vite-8.1-646cff.svg)](https://vitejs.dev/)
