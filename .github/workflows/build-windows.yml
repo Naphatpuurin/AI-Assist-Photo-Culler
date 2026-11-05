@@ -59,7 +59,12 @@ jobs:
       - name: Build WiX MSI Package
         run: |
           dotnet tool install --global wix
-          wix build backend/product.wxs -o release/MicMose-Photo-Culler-Pro.msi
+          cd backend
+          wix build product.wxs -o ../release/MicMose-Photo-Culler-Pro.msi --acceptEula wix7
+
+      - name: Generate Windows Release Checksums
+        run: |
+          Get-FileHash release/* -Algorithm SHA256 | ForEach-Object { "$($_.Hash.ToLower())  $($_.Path | Split-Path -Leaf)" } | Out-File -Encoding ascii release/SHA256SUMS.txt
 
       - name: Upload Windows Artifacts
         uses: actions/upload-artifact@v4
